@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bed Bug Inspection Pro - Icon Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 10px; }
+    p { color: #888; margin-bottom: 30px; }
+    .icons { display: flex; flex-wrap: wrap; gap: 30px; }
+    .icon-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .icon-label {
+      font-size: 12px;
+      color: #888;
+    }
+    .download-btn {
+      background: #E6A23C;
+      color: #0D1B2A;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .download-btn:hover { background: #F5C875; }
+    .instructions {
+      margin-top: 40px;
+      padding: 20px;
+      background: #0D1B2A;
+      border-radius: 12px;
+      max-width: 600px;
+    }
+    .instructions h2 { margin-bottom: 15px; color: #E6A23C; }
+    .instructions ol { padding-left: 20px; line-height: 1.8; }
+    .instructions code {
+      background: #1B2838;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐛 Bed Bug Inspection Pro</h1>
+  <p>Right-click each icon → "Save image as..." to download</p>
+
+  <div class="icons">
+    <!-- App Icon 1024x1024 -->
+    <div class="icon-container">
+      <canvas id="icon1024" width="1024" height="1024"></canvas>
+      <span class="icon-label">App Icon (1024×1024)</span>
+      <button class="download-btn" onclick="download('icon1024', 'icon.png')">Download</button>
+    </div>
+
+    <!-- Adaptive Icon Foreground -->
+    <div class="icon-container">
+      <canvas id="adaptive" width="1024" height="1024"></canvas>
+      <span class="icon-label">Adaptive Icon (1024×1024)</span>
+      <button class="download-btn" onclick="download('adaptive', 'adaptive-icon.png')">Download</button>
+    </div>
+
+    <!-- Favicon -->
+    <div class="icon-container">
+      <canvas id="favicon" width="64" height="64"></canvas>
+      <span class="icon-label">Favicon (64×64)</span>
+      <button class="download-btn" onclick="download('favicon', 'favicon.png')">Download</button>
+    </div>
+
+    <!-- Splash -->
+    <div class="icon-container">
+      <canvas id="splash" width="512" height="512"></canvas>
+      <span class="icon-label">Splash Icon (512×512)</span>
+      <button class="download-btn" onclick="download('splash', 'splash-icon.png')">Download</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>How to Use</h2>
+    <ol>
+      <li>Click <strong>Download</strong> on each icon above</li>
+      <li>Save files to <code>C:\Users\jdill\BedBugInspectionPro\assets\</code></li>
+      <li>Replace the existing placeholder files</li>
+      <li>Run your build: <code>eas build --profile preview --platform all</code></li>
+    </ol>
+  </div>
+
+  <script>
+    const COLORS = {
+      bg: '#0D1B2A',
+      accent: '#E6A23C',
+      danger: '#F44336',
+      text: '#FFFFFF',
+      surface: '#1B2838'
+    };
+
+    function drawIcon(ctx, size, isAdaptive = false) {
+      const scale = size / 1024;
+      
+      // Background
+      if (isAdaptive) {
+        // Transparent for adaptive (Android handles background)
+        ctx.clearRect(0, 0, size, size);
+      } else {
+        // Rounded rect background for iOS
+        ctx.fillStyle = COLORS.bg;
+        ctx.beginPath();
+        const radius = size * 0.22; // iOS icon radius
+        ctx.roundRect(0, 0, size, size, radius);
+        ctx.fill();
+      }
+
+      // Center circle
+      const cx = size / 2;
+      const cy = size / 2;
+      const circleRadius = size * 0.35;
+
+      // Outer ring
+      ctx.strokeStyle = COLORS.accent;
+      ctx.lineWidth = size * 0.03;
+      ctx.beginPath();
+      ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner filled circle
+      ctx.fillStyle = COLORS.surface;
+      ctx.beginPath();
+      ctx.arc(cx, cy, circleRadius * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bug icon (simplified)
+      const bugSize = size * 0.25;
+      const bugX = cx;
+      const bugY = cy - size * 0.02;
+
+      // Bug body (oval)
+      ctx.fillStyle = COLORS.danger;
+      ctx.beginPath();
+      ctx.ellipse(bugX, bugY, bugSize * 0.35, bugSize * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bug head
+      ctx.beginPath();
+      ctx.arc(bugX, bugY - bugSize * 0.45, bugSize * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bug legs (3 on each side)
+      ctx.strokeStyle = COLORS.danger;
+      ctx.lineWidth = size * 0.02;
+      ctx.lineCap = 'round';
+      
+      const legOffsets = [-0.15, 0, 0.15];
+      legOffsets.forEach(offset => {
+        // Left leg
+        ctx.beginPath();
+        ctx.moveTo(bugX - bugSize * 0.3, bugY + bugSize * offset);
+        ctx.lineTo(bugX - bugSize * 0.55, bugY + bugSize * (offset - 0.1));
+        ctx.stroke();
+        
+        // Right leg
+        ctx.beginPath();
+        ctx.moveTo(bugX + bugSize * 0.3, bugY + bugSize * offset);
+        ctx.lineTo(bugX + bugSize * 0.55, bugY + bugSize * (offset - 0.1));
+        ctx.stroke();
+      });
+
+      // Magnifying glass
+      const magX = cx + size * 0.18;
+      const magY = cy + size * 0.18;
+      const magRadius = size * 0.12;
+
+      // Glass circle
+      ctx.strokeStyle = COLORS.accent;
+      ctx.lineWidth = size * 0.025;
+      ctx.beginPath();
+      ctx.arc(magX, magY, magRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Glass fill (semi-transparent)
+      ctx.fillStyle = 'rgba(230, 162, 60, 0.2)';
+      ctx.beginPath();
+      ctx.arc(magX, magY, magRadius * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Handle
+      ctx.strokeStyle = COLORS.accent;
+      ctx.lineWidth = size * 0.03;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(magX + magRadius * 0.7, magY + magRadius * 0.7);
+      ctx.lineTo(magX + magRadius * 1.4, magY + magRadius * 1.4);
+      ctx.stroke();
+    }
+
+    function drawSplash(ctx, size) {
+      // Just the icon centered, no background (Expo adds background)
+      ctx.clearRect(0, 0, size, size);
+      drawIcon(ctx, size, true);
+    }
+
+    // Draw all icons
+    const icon1024 = document.getElementById('icon1024');
+    drawIcon(icon1024.getContext('2d'), 1024, false);
+
+    const adaptive = document.getElementById('adaptive');
+    drawIcon(adaptive.getContext('2d'), 1024, true);
+
+    const favicon = document.getElementById('favicon');
+    drawIcon(favicon.getContext('2d'), 64, false);
+
+    const splash = document.getElementById('splash');
+    drawSplash(splash.getContext('2d'), 512);
+
+    // Scale canvases for display
+    document.querySelectorAll('canvas').forEach(c => {
+      const displaySize = Math.min(200, c.width);
+      c.style.width = displaySize + 'px';
+      c.style.height = displaySize + 'px';
+      c.style.borderRadius = '20px';
+    });
+
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  </script>
+</body>
+</html>
+
