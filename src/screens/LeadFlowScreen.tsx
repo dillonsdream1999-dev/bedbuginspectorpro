@@ -362,9 +362,9 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/* CASE 3: No Provider for this ZIP - Show Google search button */}
+        {/* Only show after lookup completes with no_territory or no_company result */}
         {!provider && isValidZip(zip) && !isLookingUpProvider && 
-          (errorType === 'no_territory' || errorType === 'no_company' || !errorType) && 
-          errorType !== 'network_error' && errorType !== 'timeout' && (
+          (errorType === 'no_territory' || errorType === 'no_company') && (
           <View style={styles.actionsSection}>
             <Text style={styles.actionsTitle}>Find Local Experts</Text>
             
@@ -391,11 +391,19 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        {/* CASE 3: Still looking up or no ZIP entered yet */}
-        {!provider && !providerError && isValidZip(zip) && isLookingUpProvider && (
+        {/* CASE 4: Still looking up provider */}
+        {isValidZip(zip) && isLookingUpProvider && (
           <View style={styles.loadingSection}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Finding your local expert...</Text>
+          </View>
+        )}
+
+        {/* CASE 5: Valid ZIP entered but lookup hasn't started/completed yet */}
+        {isValidZip(zip) && !isLookingUpProvider && !provider && !errorType && (
+          <View style={styles.loadingSection}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Checking availability...</Text>
           </View>
         )}
 

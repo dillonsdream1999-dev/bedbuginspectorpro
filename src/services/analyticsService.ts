@@ -232,3 +232,5 @@ export function trackPageView(page: 'education' | 'terms' | 'privacy'): void {
   trackEvent(eventMap[page]);
 }
 
+
+

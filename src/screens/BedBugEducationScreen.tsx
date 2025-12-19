@@ -1,10 +1,10 @@
 /**
  * Bed Bug Education Screen
- * Educational content about bed bugs, life stages, spread, and difficulty of removal
+ * Educational content about bed bugs, life stages, prevention, and professional treatment
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,11 @@ import { trackPageView } from '../services/analyticsService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BedBugEducation'>;
 
+// Import local images
+const adultBedBugsImage = require('../../assets/education/adult-bed-bugs.jpg');
+const nymphStagesImage = require('../../assets/education/nymph-stages.jpg');
+const bedBugEvidenceImage = require('../../assets/education/bed-bug-evidence.jpg');
+
 const LIFE_STAGES = [
   {
     stage: 'Eggs',
@@ -22,15 +27,17 @@ const LIFE_STAGES = [
     color: 'Pearly white',
     duration: 'Hatch in 6-10 days',
     icon: 'ellipse',
-    description: 'Nearly invisible to the naked eye. Laid in clusters of 10-50 in cracks and crevices.',
+    description: 'Nearly invisible to the naked eye. Laid in clusters of 10-50 in cracks and crevices. A single female can lay 200-500 eggs in her lifetime.',
   },
   {
-    stage: 'Nymphs (5 stages)',
+    stage: 'Nymphs (5 Instars)',
     size: '1.5mm - 4.5mm',
     color: 'Translucent to tan',
     duration: '5-8 weeks to mature',
     icon: 'bug-outline',
-    description: 'Must feed on blood to molt to next stage. Can survive weeks without feeding.',
+    description: 'Baby bed bugs must feed on blood between each of their 5 molting stages. They become more visible as they grow and after feeding when they turn reddish.',
+    hasImage: true,
+    image: nymphStagesImage,
   },
   {
     stage: 'Adults',
@@ -38,7 +45,79 @@ const LIFE_STAGES = [
     color: 'Reddish-brown',
     duration: 'Live 4-6 months (up to 1 year)',
     icon: 'bug',
-    description: 'Flat, oval-shaped. Females lay 1-5 eggs per day, up to 500 in lifetime.',
+    description: 'Flat, oval-shaped when unfed, swollen and elongated after feeding. Females lay 1-5 eggs daily. Males are slightly smaller with a pointed abdomen.',
+    hasImage: true,
+    image: adultBedBugsImage,
+  },
+];
+
+const PREVENTION_TIPS = [
+  {
+    title: 'Inspect Hotel Rooms',
+    icon: 'search',
+    description: 'Check mattress seams, headboards, and furniture before unpacking. Keep luggage on hard surfaces, never on the bed or carpet.',
+  },
+  {
+    title: 'Use Protective Encasements',
+    icon: 'shield-checkmark',
+    description: 'Encase mattresses and box springs in bed bug-proof covers. This traps existing bugs and prevents new ones from hiding inside.',
+  },
+  {
+    title: 'Inspect Secondhand Items',
+    icon: 'eye',
+    description: 'Carefully examine used furniture, clothing, and books before bringing them home. Avoid picking up furniture from curbs or dumpsters.',
+  },
+  {
+    title: 'Reduce Clutter',
+    icon: 'trash',
+    description: 'Clutter provides hiding spots. Keep areas around beds clear. Store items in sealed plastic containers instead of cardboard boxes.',
+  },
+  {
+    title: 'Vacuum Regularly',
+    icon: 'sparkles',
+    description: 'Vacuum mattresses, box springs, and floors regularly. Immediately dispose of the vacuum bag in a sealed plastic bag outside.',
+  },
+  {
+    title: 'Be Careful with Laundry',
+    icon: 'shirt',
+    description: 'When returning from travel, wash and dry all clothes on HIGH heat (120°F+) for at least 30 minutes. Heat kills all life stages.',
+  },
+  {
+    title: 'Seal Entry Points',
+    icon: 'construct',
+    description: 'Caulk cracks around baseboards, electrical outlets, and pipes. In apartments, this helps prevent spread from neighboring units.',
+  },
+  {
+    title: 'Use Interceptor Traps',
+    icon: 'locate',
+    description: 'Place bed bug interceptor traps under bed legs. These catch bugs trying to climb up and help detect early infestations.',
+  },
+];
+
+const SIGNS_OF_INFESTATION = [
+  {
+    title: 'Fecal Spots',
+    description: 'Dark brown or black spots (digested blood) on mattresses, sheets, walls, or furniture. Often found in clusters.',
+  },
+  {
+    title: 'Blood Stains',
+    description: 'Small rusty or reddish stains on sheets from crushed bugs or bites that bled.',
+  },
+  {
+    title: 'Shed Skins',
+    description: 'Translucent, empty exoskeletons left behind as nymphs molt through their 5 growth stages.',
+  },
+  {
+    title: 'Eggs & Eggshells',
+    description: 'Tiny (1mm) white eggs or pale yellow shells in cracks, seams, and hidden areas.',
+  },
+  {
+    title: 'Musty Odor',
+    description: 'A sweet, musty smell from bed bug scent glands. Heavy infestations have a noticeable odor.',
+  },
+  {
+    title: 'Live Bugs',
+    description: 'Adult bugs are visible to the naked eye. Check mattress seams, headboards, and furniture joints.',
   },
 ];
 
@@ -46,55 +125,65 @@ const SPREAD_METHODS = [
   {
     title: 'Travel & Hotels',
     icon: 'airplane',
-    description: 'Hitchhike in luggage, clothing, and personal items. Hotels, motels, and rentals are common pickup points.',
+    description: 'Bed bugs hitchhike in luggage, clothing, and personal items. Hotels, motels, Airbnbs, and even cruise ships are common pickup points.',
   },
   {
     title: 'Used Furniture',
     icon: 'bed',
-    description: 'Infested mattresses, couches, and furniture brought into homes. Even "clean looking" items can harbor bugs.',
+    description: 'Infested mattresses, couches, bed frames, and furniture brought into homes. Even clean-looking items can harbor bugs deep in crevices.',
   },
   {
     title: 'Visitors & Guests',
     icon: 'people',
-    description: 'Can travel on clothing, bags, or personal items of visitors. One overnight guest can start an infestation.',
+    description: 'Bugs travel on clothing, bags, or belongings of visitors. A single overnight guest from an infested home can start an infestation.',
   },
   {
     title: 'Multi-Unit Buildings',
     icon: 'business',
-    description: 'Spread through walls, electrical outlets, and plumbing between apartments. One unit can infest the building.',
+    description: 'Spread through walls, electrical outlets, plumbing, and shared laundry. One infested unit can spread to the entire building.',
   },
   {
-    title: 'Secondhand Items',
-    icon: 'pricetag',
-    description: 'Thrift store clothing, library books, and other used items can carry eggs or live bugs.',
+    title: 'Public Transportation',
+    icon: 'bus',
+    description: 'Buses, trains, planes, and taxis can harbor bed bugs. They attach to clothing and bags during your commute.',
+  },
+  {
+    title: 'Workplaces & Schools',
+    icon: 'briefcase',
+    description: 'Offices, schools, and daycares can spread infestations as bugs travel home with employees, students, and children.',
   },
 ];
 
-const WHY_HARD_TO_ELIMINATE = [
+const WHY_DIY_FAILS = [
   {
     title: 'Pesticide Resistance',
     icon: 'shield',
-    description: 'Many bed bug populations have developed resistance to common over-the-counter pesticides.',
+    description: 'Most bed bug populations have developed strong resistance to over-the-counter sprays and pesticides. What worked 20 years ago is now ineffective.',
   },
   {
     title: 'Expert Hiders',
     icon: 'eye-off',
-    description: 'Can hide in cracks as thin as a credit card. Hide in walls, electronics, picture frames, and more.',
+    description: 'Bed bugs hide in cracks as thin as a credit card—inside walls, electronics, picture frames, outlets, and places sprays can\'t reach.',
   },
   {
     title: 'Survive Without Food',
     icon: 'hourglass',
-    description: 'Adults can survive 6-12 months without feeding. Waiting them out doesn\'t work.',
+    description: 'Adults survive 6-12 months without feeding. You can\'t starve them out by sleeping elsewhere or leaving your home vacant.',
   },
   {
     title: 'Rapid Reproduction',
     icon: 'trending-up',
-    description: 'A single pregnant female can create an infestation of 300+ adults in 3 months.',
+    description: 'One pregnant female creates 300+ adults in 3 months. Missing even a few bugs means the infestation returns quickly.',
   },
   {
     title: 'Missed Eggs',
     icon: 'close-circle',
-    description: 'DIY treatments often miss eggs, which hatch and restart the cycle. Professionals use multiple treatments.',
+    description: 'DIY treatments miss eggs hidden in crevices. Eggs hatch 6-10 days later, restarting the cycle. Professionals use multiple treatments.',
+  },
+  {
+    title: 'Spreading the Problem',
+    icon: 'git-branch',
+    description: 'Improper treatment can scatter bugs to other rooms. Bug bombs are especially bad—they spread infestations without killing bugs.',
   },
 ];
 
@@ -116,7 +205,7 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={styles.title}>Know Your Enemy</Text>
           <Text style={styles.subtitle}>
-            Understanding bed bugs is the first step to eliminating them
+            Understanding bed bugs is the first step to protecting your home
           </Text>
         </View>
 
@@ -127,11 +216,16 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Life Stages</Text>
           </View>
           <Text style={styles.sectionIntro}>
-            Bed bugs go through 7 life stages. Recognizing each helps identify infestations early.
+            Bed bugs go through 7 life stages: egg, 5 nymph stages, and adult. Recognizing each stage helps identify infestations early.
           </Text>
           
-          {LIFE_STAGES.map((stage, index) => (
+          {LIFE_STAGES.map((stage) => (
             <View key={stage.stage} style={styles.stageCard}>
+              {stage.hasImage && stage.image && (
+                <View style={styles.stageImageContainer}>
+                  <Image source={stage.image} style={styles.stageImage} resizeMode="contain" />
+                </View>
+              )}
               <View style={styles.stageHeader}>
                 <View style={styles.stageIcon}>
                   <Ionicons name={stage.icon as any} size={24} color={colors.primary} />
@@ -153,6 +247,57 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </View>
 
+        {/* Signs of Infestation Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="alert-circle" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Signs of Infestation</Text>
+          </View>
+          <Text style={styles.sectionIntro}>
+            Bed bugs leave evidence of their presence. Learn to spot these warning signs early.
+          </Text>
+          
+          {/* Evidence Image */}
+          <View style={styles.evidenceImageContainer}>
+            <View style={styles.evidenceImageWrapper}>
+              <Image source={bedBugEvidenceImage} style={styles.evidenceImage} resizeMode="contain" />
+            </View>
+            <Text style={styles.imageCaption}>Fecal spots and bed bugs on fabric surface</Text>
+          </View>
+          
+          <View style={styles.signsGrid}>
+            {SIGNS_OF_INFESTATION.map((sign) => (
+              <View key={sign.title} style={styles.signCard}>
+                <Text style={styles.signTitle}>{sign.title}</Text>
+                <Text style={styles.signDescription}>{sign.description}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Prevention Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="shield-checkmark" size={20} color={colors.success} />
+            <Text style={styles.sectionTitle}>Prevention Tips</Text>
+          </View>
+          <Text style={styles.sectionIntro}>
+            The best defense is prevention. Follow these tips to reduce your risk of bringing bed bugs home.
+          </Text>
+          
+          {PREVENTION_TIPS.map((tip) => (
+            <View key={tip.title} style={styles.preventionCard}>
+              <View style={styles.preventionIcon}>
+                <Ionicons name={tip.icon as any} size={20} color={colors.success} />
+              </View>
+              <View style={styles.preventionContent}>
+                <Text style={styles.preventionTitle}>{tip.title}</Text>
+                <Text style={styles.preventionDescription}>{tip.description}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
         {/* How They Spread Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -160,7 +305,7 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.sectionTitle}>How They Spread</Text>
           </View>
           <Text style={styles.sectionIntro}>
-            Bed bugs are expert hitchhikers. They don't fly or jump—they travel with us.
+            Bed bugs are expert hitchhikers. They don't fly or jump—they travel with us and our belongings.
           </Text>
           
           {SPREAD_METHODS.map((method) => (
@@ -171,29 +316,6 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>{method.title}</Text>
                 <Text style={styles.infoDescription}>{method.description}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Why Hard to Eliminate Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="warning" size={20} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Why DIY Fails</Text>
-          </View>
-          <Text style={styles.sectionIntro}>
-            Over 90% of DIY bed bug treatments fail. Here's why professionals are essential:
-          </Text>
-          
-          {WHY_HARD_TO_ELIMINATE.map((reason) => (
-            <View key={reason.title} style={styles.warningCard}>
-              <View style={styles.warningIcon}>
-                <Ionicons name={reason.icon as any} size={18} color={colors.primary} />
-              </View>
-              <View style={styles.warningContent}>
-                <Text style={styles.warningTitle}>{reason.title}</Text>
-                <Text style={styles.warningDescription}>{reason.description}</Text>
               </View>
             </View>
           ))}
@@ -212,22 +334,22 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.statLabel}>survival without food</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>90%</Text>
-              <Text style={styles.statLabel}>DIY treatments fail</Text>
+              <Text style={styles.statNumber}>97%</Text>
+              <Text style={styles.statLabel}>pest pros treated bed bugs this year</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>3-4</Text>
-              <Text style={styles.statLabel}>treatments typically needed</Text>
+              <Text style={styles.statNumber}>$5K+</Text>
+              <Text style={styles.statLabel}>average treatment cost if delayed</Text>
             </View>
           </View>
         </View>
 
         {/* CTA Section */}
         <View style={styles.ctaSection}>
-          <Ionicons name="alert-circle" size={32} color={colors.accent} />
-          <Text style={styles.ctaTitle}>Don't Wait Until It's Worse</Text>
+          <Ionicons name="checkmark-circle" size={32} color={colors.success} />
+          <Text style={styles.ctaTitle}>Early Detection is Key</Text>
           <Text style={styles.ctaText}>
-            Early detection saves time, money, and stress. A professional inspection can confirm or rule out an infestation quickly.
+            The sooner you catch an infestation, the easier and cheaper it is to eliminate. A professional inspection can confirm or rule out bed bugs quickly.
           </Text>
           <Button
             title="Contact a Local Expert"
@@ -245,6 +367,42 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.secondaryButton}
             icon={<Ionicons name="search" size={18} color={colors.accent} />}
           />
+        </View>
+
+        {/* Why DIY Fails Section - At the bottom */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="warning" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Why DIY Treatments Fail</Text>
+          </View>
+          <Text style={styles.sectionIntro}>
+            Over 90% of DIY bed bug treatments fail completely. Here's why professional treatment is essential:
+          </Text>
+          
+          {WHY_DIY_FAILS.map((reason) => (
+            <View key={reason.title} style={styles.warningCard}>
+              <View style={styles.warningIcon}>
+                <Ionicons name={reason.icon as any} size={18} color={colors.primary} />
+              </View>
+              <View style={styles.warningContent}>
+                <Text style={styles.warningTitle}>{reason.title}</Text>
+                <Text style={styles.warningDescription}>{reason.description}</Text>
+              </View>
+            </View>
+          ))}
+
+          {/* Heat Treatment Callout */}
+          <View style={styles.heatCallout}>
+            <View style={styles.heatIcon}>
+              <Ionicons name="flame" size={28} color={colors.accent} />
+            </View>
+            <View style={styles.heatContent}>
+              <Text style={styles.heatTitle}>Professional Heat Treatment</Text>
+              <Text style={styles.heatDescription}>
+                Heat treatment raises room temperature to 120-140°F, killing all bed bugs and eggs in a single treatment. It's chemical-free, reaches hidden areas, and is the most effective solution available.
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Disclaimer */}
@@ -310,20 +468,32 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.lg,
+    lineHeight: 24,
   },
-  // Life Stage Cards
+  // Life Stage Cards with Images
   stageCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    overflow: 'hidden',
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  stageImageContainer: {
+    width: '100%',
+    backgroundColor: '#FAFAFA',
+    padding: spacing.sm,
+  },
+  stageImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1.8,
+  },
   stageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    padding: spacing.md,
+    paddingBottom: spacing.sm,
   },
   stageIcon: {
     width: 48,
@@ -353,7 +523,9 @@ const styles = StyleSheet.create({
   stageDescription: {
     ...typography.caption,
     color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   durationBadge: {
     flexDirection: 'row',
@@ -363,11 +535,97 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
     alignSelf: 'flex-start',
+    marginLeft: spacing.md,
+    marginBottom: spacing.md,
     gap: 4,
   },
   durationText: {
     ...typography.small,
     color: colors.accent,
+  },
+  // Evidence Image
+  evidenceImageContainer: {
+    marginBottom: spacing.lg,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  evidenceImageWrapper: {
+    width: '100%',
+    backgroundColor: '#FAFAFA',
+    padding: spacing.sm,
+  },
+  evidenceImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1.5,
+  },
+  imageCaption: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    padding: spacing.sm,
+    fontStyle: 'italic',
+  },
+  // Signs Grid
+  signsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  signCard: {
+    width: '48%',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  signTitle: {
+    ...typography.bodyBold,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  signDescription: {
+    ...typography.small,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  // Prevention Cards
+  preventionCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.success + '30',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  preventionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.success + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  preventionContent: {
+    flex: 1,
+  },
+  preventionTitle: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  preventionDescription: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   // Info Cards (Spread Methods)
   infoCard: {
@@ -399,8 +657,9 @@ const styles = StyleSheet.create({
   infoDescription: {
     ...typography.caption,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
-  // Warning Cards (Why Hard)
+  // Warning Cards (Why DIY Fails)
   warningCard: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 61, 0, 0.06)',
@@ -430,6 +689,39 @@ const styles = StyleSheet.create({
   warningDescription: {
     ...typography.caption,
     color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  // Heat Treatment Callout
+  heatCallout: {
+    flexDirection: 'row',
+    backgroundColor: colors.accent + '15',
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.accent + '40',
+  },
+  heatIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent + '25',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  heatContent: {
+    flex: 1,
+  },
+  heatTitle: {
+    ...typography.heading3,
+    color: colors.accent,
+    marginBottom: spacing.xs,
+  },
+  heatDescription: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   // Stats Section
   statsSection: {
@@ -474,9 +766,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.success + '40',
   },
   ctaTitle: {
     ...typography.heading3,
@@ -489,6 +781,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.lg,
+    lineHeight: 24,
   },
   secondaryButton: {
     marginTop: spacing.md,

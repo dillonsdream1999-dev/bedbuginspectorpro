@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,7 +56,10 @@ export const SelectRoomScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.headerIcon}>
             <Ionicons name="search" size={24} color={colors.primary} />
@@ -105,7 +108,7 @@ export const SelectRoomScreen: React.FC<Props> = ({ navigation }) => {
             Each inspection guides you through key hiding spots with interactive photo markers
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -115,9 +118,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   header: {
     alignItems: 'center',
@@ -145,8 +149,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttons: {
-    flex: 1,
     gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   roomButton: {
     flexDirection: 'row',
