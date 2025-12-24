@@ -16,9 +16,9 @@ import { trackPageView } from '../services/analyticsService';
 type Props = NativeStackScreenProps<RootStackParamList, 'BedBugEducation'>;
 
 // Import local images
-const adultBedBugsImage = require('../../assets/education/adult-bed-bugs.jpg');
-const nymphStagesImage = require('../../assets/education/nymph-stages.jpg');
-const bedBugEvidenceImage = require('../../assets/education/bed-bug-evidence.jpg');
+const eggsImage = require('../../assets/education/bed-bug-eggs.jpg');
+const nymphsImage = require('../../assets/education/bed-bug-nymphs.jpg');
+const adultsImage = require('../../assets/education/adult-bed-bugs.jpg');
 
 const LIFE_STAGES = [
   {
@@ -28,6 +28,8 @@ const LIFE_STAGES = [
     duration: 'Hatch in 6-10 days',
     icon: 'ellipse',
     description: 'Nearly invisible to the naked eye. Laid in clusters of 10-50 in cracks and crevices. A single female can lay 200-500 eggs in her lifetime.',
+    hasImage: true,
+    image: eggsImage,
   },
   {
     stage: 'Nymphs (5 Instars)',
@@ -37,7 +39,7 @@ const LIFE_STAGES = [
     icon: 'bug-outline',
     description: 'Baby bed bugs must feed on blood between each of their 5 molting stages. They become more visible as they grow and after feeding when they turn reddish.',
     hasImage: true,
-    image: nymphStagesImage,
+    image: nymphsImage,
   },
   {
     stage: 'Adults',
@@ -47,7 +49,7 @@ const LIFE_STAGES = [
     icon: 'bug',
     description: 'Flat, oval-shaped when unfed, swollen and elongated after feeding. Females lay 1-5 eggs daily. Males are slightly smaller with a pointed abdomen.',
     hasImage: true,
-    image: adultBedBugsImage,
+    image: adultsImage,
   },
 ];
 
@@ -257,14 +259,6 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
             Bed bugs leave evidence of their presence. Learn to spot these warning signs early.
           </Text>
           
-          {/* Evidence Image */}
-          <View style={styles.evidenceImageContainer}>
-            <View style={styles.evidenceImageWrapper}>
-              <Image source={bedBugEvidenceImage} style={styles.evidenceImage} resizeMode="contain" />
-            </View>
-            <Text style={styles.imageCaption}>Fecal spots and bed bugs on fabric surface</Text>
-          </View>
-          
           <View style={styles.signsGrid}>
             {SIGNS_OF_INFESTATION.map((sign) => (
               <View key={sign.title} style={styles.signCard}>
@@ -338,8 +332,8 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.statLabel}>pest pros treated bed bugs this year</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>$5K+</Text>
-              <Text style={styles.statLabel}>average treatment cost if delayed</Text>
+              <Text style={styles.statNumber}>$1.5-3K</Text>
+              <Text style={styles.statLabel}>average treatment cost</Text>
             </View>
           </View>
         </View>
@@ -542,32 +536,6 @@ const styles = StyleSheet.create({
   durationText: {
     ...typography.small,
     color: colors.accent,
-  },
-  // Evidence Image
-  evidenceImageContainer: {
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  evidenceImageWrapper: {
-    width: '100%',
-    backgroundColor: '#FAFAFA',
-    padding: spacing.sm,
-  },
-  evidenceImage: {
-    width: '100%',
-    height: undefined,
-    aspectRatio: 1.5,
-  },
-  imageCaption: {
-    ...typography.small,
-    color: colors.textMuted,
-    textAlign: 'center',
-    padding: spacing.sm,
-    fontStyle: 'italic',
   },
   // Signs Grid
   signsGrid: {

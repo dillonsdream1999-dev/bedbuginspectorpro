@@ -48,6 +48,12 @@ interface DbLead {
   session_id?: string;
   contact_pref: string;
   status: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  provider_id?: string;
+  provider_name?: string;
+  notes?: string;
 }
 
 /**
@@ -247,7 +253,15 @@ export async function createLead(
   zip: string,
   roomType: RoomType,
   contactPref: string,
-  sessionId?: string
+  sessionId?: string,
+  contactInfo?: {
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    providerId?: string;
+    providerName?: string;
+    notes?: string;
+  }
 ): Promise<{ success: boolean; leadId?: string; error?: string }> {
   if (!isSupabaseConfigured()) {
     console.log('Supabase not configured - lead not saved');
@@ -261,6 +275,12 @@ export async function createLead(
       session_id: sessionId,
       contact_pref: contactPref,
       status: 'new',
+      customer_name: contactInfo?.customerName,
+      customer_phone: contactInfo?.customerPhone,
+      customer_email: contactInfo?.customerEmail,
+      provider_id: contactInfo?.providerId,
+      provider_name: contactInfo?.providerName,
+      notes: contactInfo?.notes,
     };
 
     const { data, error } = await supabase

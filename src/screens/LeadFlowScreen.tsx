@@ -14,6 +14,8 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -47,6 +49,12 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
   const [isLookingUpProvider, setIsLookingUpProvider] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<LookupErrorType | null>(null);
+
+  // Callback form state
+  const [showCallbackForm, setShowCallbackForm] = useState(false);
+  const [callbackName, setCallbackName] = useState('');
+  const [callbackPhone, setCallbackPhone] = useState('');
+  const [callbackEmail, setCallbackEmail] = useState('');
 
   useEffect(() => {
     detectZip();
@@ -121,6 +129,12 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    // For callback, show the form instead of immediately submitting
+    if (action === 'callback') {
+      setShowCallbackForm(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmittedAction(action);
 
@@ -130,7 +144,10 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     const sessionId = session?.id;
 
     // IMPORTANT: Create lead record BEFORE initiating call/text
-    const leadResult = await createLead(zip, roomType, action, sessionId);
+    const leadResult = await createLead(zip, roomType, action, sessionId, {
+      providerId: provider?.id,
+      providerName: provider?.companyName,
+    });
     
     if (!leadResult.success) {
       console.warn('Failed to save lead:', leadResult.error);
@@ -141,7 +158,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     trackLeadSubmitted(zip, action, !!provider, provider?.companyName);
     
     // Handle contact initiation - use provider's phone if available
-    const phoneNumber = provider?.phone || '18005550199';
+    const phoneNumber = provider?.phone || '816-926-2111';
     const cleanPhone = phoneNumber.replace(/\D/g, ''); // Remove non-digits
     
     if (action === 'call_now') {
@@ -153,12 +170,72 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
         `Hi${provider ? ` ${provider.companyName}` : ''}, I'm looking for bed bug inspection help. My ZIP code is ${zip}. Can you provide more information?`
       );
       Linking.openURL(`sms:${cleanPhone}?body=${message}`);
-    } else if (action === 'callback') {
-      trackContactAction('callback', zip, provider?.companyName);
     }
 
     setSubmitted(true);
     setIsSubmitting(false);
+  };
+
+  const handleCallbackSubmit = async () => {
+    // Validate form
+    if (!callbackName.trim()) {
+      Alert.alert('Name Required', 'Please enter your name so we can address you properly.');
+      return;
+    }
+    if (!callbackPhone.trim() || callbackPhone.replace(/\D/g, '').length < 10) {
+      Alert.alert('Phone Required', 'Please enter a valid phone number so we can call you back.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmittedAction('callback');
+    setShowCallbackForm(false);
+
+    // Get session info if available
+    const session = usePhotoScanStore.getState().session;
+    const roomType: RoomType = session?.roomType || 'bedroom';
+    const sessionId = session?.id;
+
+    // Create lead with contact info
+    const leadResult = await createLead(zip, roomType, 'callback', sessionId, {
+      customerName: callbackName.trim(),
+      customerPhone: callbackPhone.trim(),
+      customerEmail: callbackEmail.trim() || undefined,
+      providerId: provider?.id,
+      providerName: provider?.companyName,
+      notes: `Callback requested for ZIP ${zip}`,
+    });
+    
+    if (!leadResult.success) {
+      console.warn('Failed to save callback request:', leadResult.error);
+      Alert.alert(
+        'Request Failed',
+        'We couldn\'t submit your callback request. Please try calling or texting directly.',
+        [{ text: 'OK' }]
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Track lead submission and contact action
+    trackLeadSubmitted(zip, 'callback', !!provider, provider?.companyName);
+    trackContactAction('callback', zip, provider?.companyName);
+
+    setSubmitted(true);
+    setIsSubmitting(false);
+  };
+
+  const formatPhoneInput = (text: string) => {
+    // Remove all non-digits
+    const cleaned = text.replace(/\D/g, '');
+    // Format as (XXX) XXX-XXXX
+    if (cleaned.length <= 3) {
+      return cleaned;
+    } else if (cleaned.length <= 6) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+    } else {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+    }
   };
 
   if (submitted) {
@@ -410,6 +487,110 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
         {/* Disclaimer */}
         <Text style={styles.disclaimer}>{COPY.CTA_DISCLAIMER}</Text>
       </ScrollView>
+
+      {/* Callback Request Form Modal */}
+      <Modal
+        visible={showCallbackForm}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCallbackForm(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="call" size={32} color={colors.accent} />
+              </View>
+              <Text style={styles.modalTitle}>Request a Callback</Text>
+              <Text style={styles.modalSubtitle}>
+                {provider?.companyName || 'A local expert'} will call you back
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowCallbackForm(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formSection}>
+              <View style={styles.formField}>
+                <Text style={styles.formLabel}>Your Name *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={callbackName}
+                  onChangeText={setCallbackName}
+                  placeholder="Enter your name"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.formLabel}>Phone Number *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={callbackPhone}
+                  onChangeText={(text) => setCallbackPhone(formatPhoneInput(text))}
+                  placeholder="(555) 555-5555"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  maxLength={14}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.formLabel}>Email (Optional)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={callbackEmail}
+                  onChangeText={setCallbackEmail}
+                  placeholder="email@example.com"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.submitCallbackButton}
+                onPress={handleCallbackSubmit}
+                disabled={isSubmitting}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.textOnPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={20} color={colors.textOnPrimary} />
+                    <Text style={styles.submitCallbackText}>Submit Request</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowCallbackForm(false)}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.privacyNote}>
+              Your information will only be shared with {provider?.companyName || 'the local provider'} to process your callback request.
+            </Text>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -766,6 +947,105 @@ const styles = StyleSheet.create({
   doneButton: {
     width: '100%',
     marginBottom: spacing.lg,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    position: 'relative',
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.accent + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    ...typography.heading2,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formSection: {
+    marginBottom: spacing.lg,
+  },
+  formField: {
+    marginBottom: spacing.md,
+  },
+  formLabel: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  formInput: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    ...typography.body,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalActions: {
+    gap: spacing.sm,
+  },
+  submitCallbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  submitCallbackText: {
+    ...typography.bodyBold,
+    color: colors.textOnPrimary,
+  },
+  cancelButton: {
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  cancelButtonText: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  privacyNote: {
+    ...typography.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
 });
 
