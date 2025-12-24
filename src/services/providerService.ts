@@ -31,6 +31,7 @@ export interface TerritoryLookupResult {
   provider?: Provider;
   territoryId?: string;
   territoryName?: string;
+  metroArea?: string;  // DMA (Designated Market Area)
   error?: string;
   errorType?: LookupErrorType;
 }
@@ -136,6 +137,7 @@ export async function getProviderByZip(zip: string): Promise<TerritoryLookupResu
       provider,
       territoryId: territory.id,
       territoryName: territory.name,
+      metroArea: territory.metro_area, // DMA this territory belongs to
     };
 
   } catch (err: any) {

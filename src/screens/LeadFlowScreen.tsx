@@ -46,6 +46,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
   
   // Provider lookup state
   const [provider, setProvider] = useState<Provider | null>(null);
+  const [metroArea, setMetroArea] = useState<string | null>(null); // DMA
   const [isLookingUpProvider, setIsLookingUpProvider] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<LookupErrorType | null>(null);
@@ -79,12 +80,14 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     
     if (result.found && result.provider) {
       setProvider(result.provider);
+      setMetroArea(result.metroArea || null); // Store DMA info
       setProviderError(null);
       setErrorType(null);
       // Track provider found
       trackProviderLookup(zipCode, true, result.provider.companyName);
     } else {
       setProvider(null);
+      setMetroArea(null);
       setProviderError(result.error || null);
       setErrorType(result.errorType || null);
       // Track provider not found (only for no_territory, not network errors)
@@ -327,6 +330,12 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.providerInfo}>
                   <Text style={styles.providerLabel}>Your Local Expert</Text>
                   <Text style={styles.providerName}>{provider.companyName}</Text>
+                  {metroArea && (
+                    <View style={styles.metroAreaRow}>
+                      <Ionicons name="location" size={12} color={colors.textMuted} />
+                      <Text style={styles.metroAreaText}>{metroArea} Area</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.providerBadge}>
                   <Ionicons name="shield-checkmark" size={14} color={colors.success} />
@@ -667,6 +676,16 @@ const styles = StyleSheet.create({
   providerName: {
     ...typography.bodyBold,
     color: colors.textPrimary,
+  },
+  metroAreaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  metroAreaText: {
+    ...typography.small,
+    color: colors.textMuted,
   },
   providerBadge: {
     flexDirection: 'row',
