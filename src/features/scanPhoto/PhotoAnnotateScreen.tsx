@@ -2,20 +2,24 @@
  * Photo Annotate Screen - Display photo with overlay pins + bottom sheet
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
+  Pressable,
   Modal,
   ScrollView,
   Dimensions,
+  Platform,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../../components/Button';
 import { colors, spacing, typography, borderRadius } from '../../constants/theme';
 import { RootStackParamList } from '../../types';
@@ -29,8 +33,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const PhotoAnnotateScreen: React.FC<Props> = ({ navigation, route }) => {
   const { stepId } = route.params;
-  const { session, updatePinStatus, markStepReviewed } = usePhotoScanStore();
+  const { session, updatePinStatus, updatePinPosition, markStepReviewed } = usePhotoScanStore();
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
+  const [draggingPin, setDraggingPin] = useState<Pin | null>(null);
+  const photoContainerRef = useRef<View>(null);
+  const [containerLayout, setContainerLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const step = session?.steps.find((s) => s.id === stepId);
 
@@ -43,8 +50,61 @@ export const PhotoAnnotateScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
+  // Convert screen coordinates to normalized (0-1) coordinates
+  const screenToNormalized = (screenX: number, screenY: number) => {
+    if (containerLayout.width === 0 || containerLayout.height === 0) {
+      return { x: 0.5, y: 0.5 };
+    }
+    
+    const relativeX = screenX - containerLayout.x;
+    const relativeY = screenY - containerLayout.y;
+    
+    const normalizedX = Math.max(0, Math.min(1, relativeX / containerLayout.width));
+    const normalizedY = Math.max(0, Math.min(1, relativeY / containerLayout.height));
+    
+    return { x: normalizedX, y: normalizedY };
+  };
+
   const handlePinTap = (pin: Pin) => {
+    // If dragging, don't open modal
+    if (draggingPin) {
+      return;
+    }
     setSelectedPin(pin);
+  };
+
+
+  // Pan responder for dragging pins
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !!draggingPin,
+        onMoveShouldSetPanResponder: () => !!draggingPin,
+        onPanResponderMove: (event) => {
+          if (draggingPin) {
+            const { pageX, pageY } = event.nativeEvent;
+            const normalized = screenToNormalized(pageX, pageY);
+            updatePinPosition(stepId, draggingPin.id, normalized.x, normalized.y);
+          }
+        },
+        onPanResponderRelease: () => {
+          if (draggingPin) {
+            if (Platform.OS !== 'web') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+            setDraggingPin(null);
+          }
+        },
+      }),
+    [draggingPin, stepId, updatePinPosition]
+  );
+
+  const handlePinStartDrag = (pin: Pin) => {
+    setDraggingPin(pin);
+    setSelectedPin(null);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
   };
 
   const handleMarkChecked = () => {
@@ -92,49 +152,82 @@ export const PhotoAnnotateScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       {/* Photo with pins */}
-      <View style={styles.photoContainer}>
+      <View 
+        ref={photoContainerRef}
+        style={styles.photoContainer}
+        onLayout={(event) => {
+          const { x, y, width, height } = event.nativeEvent.layout;
+          setContainerLayout({ x, y, width, height });
+        }}
+        {...panResponder.panHandlers}
+      >
         <Image source={{ uri: step.photoUri }} style={styles.photo} resizeMode="contain" />
 
         {/* Pin overlays */}
-        {step.pins.map((pin) => (
-          <TouchableOpacity
-            key={pin.id}
-            style={[
-              styles.pinMarker,
-              {
-                left: `${pin.x * 100}%`,
-                top: `${pin.y * 100}%`,
-              },
-              pin.status === 'checked' && styles.pinChecked,
-              pin.status === 'concerned' && styles.pinConcerned,
-            ]}
-            onPress={() => handlePinTap(pin)}
-          >
-            <Ionicons
-              name={
-                pin.status === 'checked'
-                  ? 'checkmark-circle'
-                  : pin.status === 'concerned'
-                  ? 'alert-circle'
-                  : 'location'
-              }
-              size={24}
-              color={
-                pin.status === 'checked'
-                  ? colors.success
-                  : pin.status === 'concerned'
-                  ? colors.danger
-                  : colors.accent
-              }
-            />
-          </TouchableOpacity>
-        ))}
+        {step.pins.map((pin) => {
+          const isDragging = draggingPin?.id === pin.id;
+          
+          return (
+            <Pressable
+              key={pin.id}
+              style={[
+                styles.pinMarker,
+                {
+                  left: `${pin.x * 100}%`,
+                  top: `${pin.y * 100}%`,
+                },
+                pin.status === 'checked' && styles.pinChecked,
+                pin.status === 'concerned' && styles.pinConcerned,
+                isDragging && styles.pinDragging,
+              ]}
+              onPress={() => {
+                if (!draggingPin) {
+                  handlePinTap(pin);
+                }
+              }}
+              onLongPress={() => handlePinStartDrag(pin)}
+            >
+              <Ionicons
+                name={
+                  pin.status === 'checked'
+                    ? 'checkmark-circle'
+                    : pin.status === 'concerned'
+                    ? 'alert-circle'
+                    : 'location'
+                }
+                size={isDragging ? 28 : 24}
+                color={
+                  pin.status === 'checked'
+                    ? colors.success
+                    : pin.status === 'concerned'
+                    ? colors.danger
+                    : colors.accent
+                }
+              />
+              {isDragging && (
+                <View style={styles.dragIndicator}>
+                  <Text style={styles.dragText}>Drag to adjust</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
+
+      {/* Adjustment notice */}
+      {step.pinsManuallyAdjusted && !draggingPin && (
+        <View style={styles.adjustmentNotice}>
+          <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+          <Text style={styles.adjustmentText}>Pin positions adjusted</Text>
+        </View>
+      )}
 
       {/* Instructions */}
       <View style={styles.instructionBar}>
-        <Ionicons name="finger-print-outline" size={20} color={colors.textSecondary} />
-        <Text style={styles.instructionText}>Tap pins to inspect each area</Text>
+        <Ionicons name="finger-print-outline" size={18} color={colors.textSecondary} />
+        <Text style={styles.instructionText}>
+          {draggingPin ? 'Drag to adjust position, release when done' : 'Tap pins to inspect • Long press to move'}
+        </Text>
       </View>
 
       {/* Pin Detail Modal */}
@@ -303,14 +396,34 @@ const styles = StyleSheet.create({
   },
   pinMarker: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    marginLeft: -20,
-    marginTop: -20,
+    width: 48,
+    height: 48,
+    marginLeft: -24,
+    marginTop: -24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 24,
+    zIndex: 10,
+  },
+  pinDragging: {
+    backgroundColor: 'rgba(255, 160, 0, 0.6)',
+    zIndex: 20,
+    transform: [{ scale: 1.2 }],
+  },
+  dragIndicator: {
+    position: 'absolute',
+    bottom: -20,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  dragText: {
+    ...typography.small,
+    fontSize: 10,
+    color: colors.textOnPrimary,
+    fontWeight: '600',
   },
   pinChecked: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
@@ -440,6 +553,23 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  adjustmentNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.success + '15',
+    borderTopWidth: 1,
+    borderTopColor: colors.success + '30',
+  },
+  adjustmentText: {
+    ...typography.small,
+    fontSize: 11,
+    color: colors.success,
+    fontWeight: '600',
   },
 });
 

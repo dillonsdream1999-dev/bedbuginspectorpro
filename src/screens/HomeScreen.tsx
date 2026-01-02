@@ -3,12 +3,13 @@
  * LeadSnap-inspired clean, professional design
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../components/Button';
 import { COPY } from '../constants/copy';
 import { colors, spacing, typography, borderRadius, shadows } from '../constants/theme';
@@ -17,30 +18,63 @@ import { RootStackParamList } from '../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const handleLinkPress = (route: 'Terms' | 'Privacy') => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    navigation.navigate(route);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
-        {/* Hero Section with Gradient */}
-        <LinearGradient
-          colors={['#1A0505', '#2D0A0A', '#1A0505']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
+        {/* Compact Hero Section */}
+        <Animated.View
+          style={[
+            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+          ]}
         >
-          <View style={styles.heroContent}>
-            <View style={styles.iconBadge}>
-              <Ionicons name="bug" size={32} color={colors.primary} />
+          <LinearGradient
+            colors={['#1A0505', '#2D0A0A', '#1A0505']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="bug" size={28} color={colors.primary} />
+              </View>
+              <Text style={styles.appName}>{COPY.APP_NAME}</Text>
+              <Text style={styles.tagline}>{COPY.APP_TAGLINE}</Text>
             </View>
-            <Text style={styles.appName}>{COPY.APP_NAME}</Text>
-            <Text style={styles.tagline}>{COPY.APP_TAGLINE}</Text>
-            <Text style={styles.heroSubtitle}>{COPY.HOME_HERO_SUBTITLE}</Text>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </Animated.View>
 
-        {/* Primary CTA Card */}
+        {/* Primary CTA Card - Moved Up */}
         <View style={styles.ctaCard}>
           <Text style={styles.ctaCardTitle}>{COPY.HOME_HERO_TITLE}</Text>
           <Button
@@ -53,10 +87,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {/* What This App Does */}
+        {/* Simplified Features - Compact Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{COPY.HOME_WHAT_IS}</Text>
-          
           <View style={styles.featureList}>
             <FeatureRow
               icon="images-outline"
@@ -79,69 +111,73 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Learn About Bed Bugs Card */}
-        <View style={styles.educationCard}>
-          <View style={styles.educationContent}>
-            <Ionicons name="book-outline" size={24} color={colors.accent} />
-            <View style={styles.educationText}>
-              <Text style={styles.educationTitle}>Learn About Bed Bugs</Text>
-              <Text style={styles.educationDesc}>Life stages, how they spread, and why they're hard to eliminate</Text>
-            </View>
-          </View>
-          <Button
-            title="Read More"
-            onPress={() => navigation.navigate('BedBugEducation')}
-            variant="ghost"
-            size="small"
-            icon={<Ionicons name="chevron-forward" size={16} color={colors.accent} />}
-          />
+        {/* Combined Learn & Help Card */}
+        <View style={styles.actionCards}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionCard,
+              pressed && styles.educationCardPressed,
+            ]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              navigation.navigate('BedBugEducation');
+            }}
+          >
+            <Ionicons name="book-outline" size={20} color={colors.accent} />
+            <Text style={styles.actionCardText}>Learn About Bed Bugs</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionCard,
+              pressed && styles.educationCardPressed,
+            ]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              navigation.navigate('LeadFlow', {});
+            }}
+          >
+            <Ionicons name="call-outline" size={20} color={colors.primary} />
+            <Text style={styles.actionCardText}>Contact Expert</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          </Pressable>
         </View>
 
-        {/* Privacy Notice */}
-        <View style={styles.privacyCard}>
-          <View style={styles.privacyHeader}>
-            <Ionicons name="shield-checkmark" size={20} color={colors.success} />
-            <Text style={styles.privacyBadge}>{COPY.PRIVACY_BADGE}</Text>
+        {/* Combined Privacy & Disclaimer */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+            <Text style={styles.infoText}>{COPY.PRIVACY_BADGE}</Text>
           </View>
-          <Text style={styles.privacyText}>{COPY.PRIVACY_PHOTOS_DESC}</Text>
+          <Text style={styles.infoSmallText}>
+            {COPY.HOME_NOT_DIAGNOSIS} {COPY.HOME_EDUCATIONAL}
+          </Text>
         </View>
-
-        {/* Important Disclaimer */}
-        <View style={styles.disclaimerCard}>
-          <View style={styles.disclaimerIcon}>
-            <Ionicons name="alert-circle" size={24} color={colors.warning} />
-          </View>
-          <View style={styles.disclaimerContent}>
-            <Text style={styles.disclaimerTitle}>{COPY.HOME_NOT_DIAGNOSIS}</Text>
-            <Text style={styles.disclaimerText}>{COPY.HOME_EDUCATIONAL}</Text>
-          </View>
-        </View>
-
-        {/* Secondary CTA Section */}
-        <View style={styles.expertSection}>
-          <Text style={styles.expertTitle}>Need Professional Help?</Text>
-          <Text style={styles.expertText}>{COPY.CTA_SUPPORTING}</Text>
-          <Button
-            title={COPY.CTA_BUTTON}
-            onPress={() => navigation.navigate('LeadFlow', {})}
-            variant="secondary"
-            size="medium"
-            icon={<Ionicons name="people" size={18} color={colors.textOnPrimary} />}
-          />
-        </View>
-
-        {/* Footer disclaimer */}
-        <Text style={styles.footerDisclaimer}>{COPY.CTA_DISCLAIMER}</Text>
 
         {/* Legal Links */}
         <View style={styles.legalLinks}>
-          <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
+          <Pressable
+            onPress={() => handleLinkPress('Terms')}
+            style={({ pressed }) => [
+              pressed && styles.legalLinkPressed,
+            ]}
+          >
             <Text style={styles.legalLink}>Terms of Service</Text>
-          </TouchableOpacity>
+          </Pressable>
           <Text style={styles.legalSeparator}>•</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Privacy')}>
+          <Pressable
+            onPress={() => handleLinkPress('Privacy')}
+            style={({ pressed }) => [
+              pressed && styles.legalLinkPressed,
+            ]}
+          >
             <Text style={styles.legalLink}>Privacy Policy</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -175,30 +211,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  // Hero gradient section
+  // Hero gradient section - More compact
   heroGradient: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl + spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   heroContent: {
     alignItems: 'center',
   },
   iconBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: 'rgba(255, 61, 0, 0.15)',
     borderWidth: 2,
     borderColor: 'rgba(255, 61, 0, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   appName: {
     ...typography.appTitle,
+    fontSize: 28,
+    lineHeight: 34,
     color: colors.textOnPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
@@ -210,186 +248,122 @@ const styles = StyleSheet.create({
     ...typography.captionBold,
     color: colors.accent,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    letterSpacing: 2,
+    fontSize: 11,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
-  heroSubtitle: {
-    ...typography.body,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    maxWidth: 320,
-  },
-  // CTA Card
+  // CTA Card - Moved closer to hero
   ctaCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginHorizontal: spacing.lg,
-    marginTop: -spacing.xxl,
+    marginTop: -spacing.xl,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: spacing.md,
+    gap: spacing.sm,
+    ...(Platform.OS === 'ios' ? shadows.lg : { elevation: 8 }),
   },
   ctaCardTitle: {
-    ...typography.heading2,
+    ...typography.heading3,
+    fontSize: 18,
     color: colors.textPrimary,
     textAlign: 'center',
+    marginBottom: spacing.xs,
   },
-  // Features section
+  // Features section - More compact
   section: {
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-  },
-  sectionTitle: {
-    ...typography.heading3,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   featureList: {
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   featureIcon: {
-    width: 52,
-    height: 52,
+    width: 44,
+    height: 44,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   featureContent: {
     flex: 1,
-    paddingTop: spacing.xs,
+    paddingTop: 2,
   },
   featureTitle: {
     ...typography.bodyBold,
+    fontSize: 15,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   featureDescription: {
     ...typography.caption,
+    fontSize: 13,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
-  // Education card
-  educationCard: {
+  // Combined action cards
+  actionCards: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  actionCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+    ...(Platform.OS === 'ios' ? shadows.sm : { elevation: 2 }),
+  },
+  actionCardText: {
+    ...typography.captionBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  educationCardPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
+  // Combined info card
+  infoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm + 4,
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  educationContent: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    gap: spacing.md,
-  },
-  educationText: {
-    flex: 1,
-  },
-  educationTitle: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  educationDesc: {
-    ...typography.small,
-    color: colors.textSecondary,
-  },
-  // Privacy card
-  privacyCard: {
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.3)',
-  },
-  privacyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     marginBottom: spacing.xs,
   },
-  privacyBadge: {
+  infoText: {
     ...typography.captionBold,
+    fontSize: 12,
     color: colors.success,
   },
-  privacyText: {
+  infoSmallText: {
     ...typography.small,
+    fontSize: 11,
     color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  // Disclaimer card
-  disclaimerCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 160, 0, 0.08)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 160, 0, 0.3)',
-    gap: spacing.md,
-  },
-  disclaimerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 160, 0, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disclaimerContent: {
-    flex: 1,
-  },
-  disclaimerTitle: {
-    ...typography.captionBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  disclaimerText: {
-    ...typography.small,
-    color: colors.textSecondary,
-  },
-  // Expert section
-  expertSection: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  expertTitle: {
-    ...typography.heading3,
-    color: colors.accent,
-  },
-  expertText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  footerDisclaimer: {
-    ...typography.small,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    lineHeight: 16,
   },
   legalLinks: {
     flexDirection: 'row',
@@ -405,6 +379,9 @@ const styles = StyleSheet.create({
   },
   legalSeparator: {
     color: colors.textMuted,
+  },
+  legalLinkPressed: {
+    opacity: 0.6,
   },
 });
 

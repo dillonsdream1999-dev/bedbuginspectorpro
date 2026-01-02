@@ -3,10 +3,11 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../../components/Button';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/theme';
 import { RootStackParamList } from '../../types';
@@ -77,13 +78,43 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.stepTitle}>{currentStep.title}</Text>
           <Text style={styles.stepInstruction}>{currentStep.instruction}</Text>
 
-          {/* Tips */}
-          <View style={styles.tipsContainer}>
-            {currentStep.tips.map((tip, index) => (
-              <View key={index} style={styles.tipRow}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                <Text style={styles.tipText}>{tip}</Text>
-              </View>
+          {/* Inspection Checklist */}
+          <View style={styles.checklistContainer}>
+            <Text style={styles.checklistTitle}>Inspection Checklist</Text>
+            <Text style={styles.checklistSubtitle}>Check off areas as you inspect them</Text>
+            {currentStep.checklistItems.map((item) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [
+                  styles.checklistItem,
+                  pressed && styles.checklistItemPressed,
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  usePhotoScanStore.getState().toggleChecklistItem(currentStep.id, item.id);
+                }}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    item.checked && styles.checkboxChecked,
+                  ]}
+                >
+                  {item.checked && (
+                    <Ionicons name="checkmark" size={16} color={colors.textOnPrimary} />
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.checklistText,
+                    item.checked && styles.checklistTextChecked,
+                  ]}
+                >
+                  {item.text}
+                </Text>
+              </Pressable>
             ))}
           </View>
 
@@ -97,10 +128,16 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Photo preview or capture button */}
           {currentStep.photoUri ? (
-            <TouchableOpacity style={styles.photoPreview} onPress={handleViewAnnotate}>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.photoPreview,
+                pressed && styles.photoPreviewPressed,
+              ]}
+              onPress={handleViewAnnotate}
+            >
               <Image source={{ uri: currentStep.photoUri }} style={styles.previewImage} />
               <View style={styles.previewOverlay}>
-                <Ionicons name="eye-outline" size={24} color={colors.textOnPrimary} />
+                <Ionicons name="eye-outline" size={20} color={colors.textOnPrimary} />
                 <Text style={styles.previewText}>Tap to review & annotate</Text>
               </View>
               <View
@@ -113,7 +150,7 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
                   {currentStep.status === 'reviewed' ? '✓ Reviewed' : 'Captured'}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           ) : (
             <Button
               title="Take Photo"
@@ -139,14 +176,19 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Step navigation dots */}
         <View style={styles.dotsContainer}>
           {session.steps.map((step, index) => (
-            <TouchableOpacity
+            <Pressable
               key={step.id}
               style={[
                 styles.dot,
                 index === session.currentStepIndex && styles.dotActive,
                 step.status === 'reviewed' && styles.dotCompleted,
               ]}
-              onPress={() => usePhotoScanStore.getState().goToStep(index)}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                usePhotoScanStore.getState().goToStep(index);
+              }}
             />
           ))}
         </View>
@@ -154,14 +196,18 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.navButton, session.currentStepIndex === 0 && styles.navButtonDisabled]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.navButton,
+            session.currentStepIndex === 0 && styles.navButtonDisabled,
+            pressed && !(session.currentStepIndex === 0) && styles.navButtonPressed,
+          ]}
           onPress={previousStep}
           disabled={session.currentStepIndex === 0}
         >
           <Ionicons
             name="chevron-back"
-            size={24}
+            size={22}
             color={session.currentStepIndex === 0 ? colors.textMuted : colors.primary}
           />
           <Text
@@ -172,7 +218,7 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
           >
             Back
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {isLastStep ? (
           <Button
@@ -183,10 +229,16 @@ export const PhotoScanFlowScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.completeButton}
           />
         ) : (
-          <TouchableOpacity style={styles.navButton} onPress={handleNext}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.navButton,
+              pressed && styles.navButtonPressed,
+            ]}
+            onPress={handleNext}
+          >
             <Text style={styles.navButtonText}>{PHOTO_SCAN_COPY.NEXT_STEP}</Text>
-            <Ionicons name="chevron-forward" size={24} color={colors.primary} />
-          </TouchableOpacity>
+            <Ionicons name="chevron-forward" size={22} color={colors.primary} />
+          </Pressable>
         )}
       </View>
     </SafeAreaView>
@@ -209,86 +261,130 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   progressContainer: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   progressText: {
     ...typography.captionBold,
+    fontSize: 12,
     color: colors.primary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: colors.surfaceLight,
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 4,
+    borderRadius: 3,
   },
   stepCard: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadows.sm,
+    ...(Platform.OS === 'ios' ? shadows.sm : { elevation: 2 }),
   },
   stepTitle: {
-    ...typography.heading2,
+    ...typography.heading3,
+    fontSize: 18,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   stepInstruction: {
     ...typography.body,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+    lineHeight: 22,
   },
-  tipsContainer: {
-    marginBottom: spacing.lg,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
+  checklistContainer: {
+    marginBottom: spacing.sm,
+    backgroundColor: colors.background,
+    padding: spacing.sm + 4,
     borderRadius: borderRadius.md,
   },
-  tipRow: {
+  checklistTitle: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  checklistSubtitle: {
+    ...typography.small,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: spacing.xs + 2,
+  },
+  checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: spacing.xs + 2,
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
-  tipText: {
+  checklistItemPressed: {
+    opacity: 0.7,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checklistText: {
     ...typography.caption,
+    fontSize: 13,
     color: colors.textSecondary,
     flex: 1,
+    lineHeight: 18,
+  },
+  checklistTextChecked: {
+    color: colors.textMuted,
+    textDecorationLine: 'line-through',
   },
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.warning + '15',
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    padding: spacing.sm + 4,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
     borderLeftWidth: 3,
     borderLeftColor: colors.warning,
   },
   warningText: {
     ...typography.caption,
+    fontSize: 13,
     color: colors.textPrimary,
     flex: 1,
+    lineHeight: 18,
   },
   photoPreview: {
     position: 'relative',
     borderRadius: borderRadius.md,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
-    ...shadows.md,
+    marginBottom: spacing.xs,
+    ...(Platform.OS === 'ios' ? shadows.md : { elevation: 4 }),
+  },
+  photoPreviewPressed: {
+    opacity: 0.9,
   },
   previewImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     resizeMode: 'cover',
   },
   previewOverlay: {
@@ -300,11 +396,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.sm,
-    gap: spacing.sm,
+    padding: spacing.xs + 2,
+    gap: spacing.xs,
   },
   previewText: {
     ...typography.caption,
+    fontSize: 12,
     color: colors.textOnPrimary,
   },
   statusBadge: {
@@ -357,24 +454,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.background,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
     paddingBottom: 30,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    ...shadows.sm,
+    ...(Platform.OS === 'ios' ? shadows.sm : { elevation: 2 }),
   },
   navButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    padding: spacing.sm,
+    padding: spacing.xs + 2,
+  },
+  navButtonPressed: {
+    opacity: 0.7,
   },
   navButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   navButtonText: {
     ...typography.bodyBold,
+    fontSize: 15,
     color: colors.primary,
   },
   navButtonTextDisabled: {

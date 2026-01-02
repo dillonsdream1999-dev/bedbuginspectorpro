@@ -1,16 +1,19 @@
 /**
- * Custom Button Component - LeadSnap Style
+ * Custom Button Component - Native App Feel
  */
 
 import React from 'react';
 import {
-  TouchableOpacity,
+  Pressable,
   Text,
   StyleSheet,
   ViewStyle,
   ActivityIndicator,
   View,
+  Platform,
+  StyleSheet as RNStyleSheet,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { colors, borderRadius, spacing, shadows } from '../constants/theme';
 
 interface ButtonProps {
@@ -51,12 +54,33 @@ export const Button: React.FC<ButtonProps> = ({
     styles[`${size}Text` as keyof typeof styles],
   ];
 
+  const handlePressIn = () => {
+    if (!disabled && !loading && Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const handlePress = () => {
+    if (!disabled && !loading) {
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      onPress();
+    }
+  };
+
+  const flattenedStyle = RNStyleSheet.flatten(buttonStyle) as ViewStyle;
+
   return (
-    <TouchableOpacity
-      style={buttonStyle}
-      onPress={onPress}
+    <Pressable
+      style={({ pressed }) => 
+        pressed && !disabled && !loading 
+          ? [flattenedStyle, styles.pressed] 
+          : flattenedStyle
+      }
+      onPress={handlePress}
+      onPressIn={handlePressIn}
       disabled={disabled || loading}
-      activeOpacity={0.85}
     >
       {loading ? (
         <ActivityIndicator
@@ -68,7 +92,7 @@ export const Button: React.FC<ButtonProps> = ({
           <Text style={textStyles}>{title}</Text>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -93,11 +117,11 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: colors.accent,
-    ...shadows.md,
+    ...(Platform.OS === 'ios' ? shadows.md : { elevation: 4 }),
   },
   secondary: {
     backgroundColor: colors.primary,
-    ...shadows.md,
+    ...(Platform.OS === 'ios' ? shadows.md : { elevation: 4 }),
   },
   outline: {
     backgroundColor: 'transparent',
@@ -150,6 +174,10 @@ const styles = StyleSheet.create({
   },
   largeText: {
     fontSize: 18,
+  },
+  pressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
 });
 

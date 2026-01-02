@@ -39,12 +39,14 @@ function createPin(
 
 // Pin templates for each step type
 const PIN_TEMPLATES: Record<string, () => Pin[]> = {
-  // Bed Overview - general zones
+  // Bed Overview - general zones (improved positioning)
   BED_OVERVIEW: () => [
-    createPin(0.5, 0.2, 'Headboard Zone', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
-    createPin(0.2, 0.5, 'Left Edge', PIN_WHY.EDGE, PIN_LOOK.SKINS),
-    createPin(0.8, 0.5, 'Right Edge', PIN_WHY.EDGE, PIN_LOOK.SKINS),
-    createPin(0.5, 0.85, 'Foot Zone', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.3, 0.18, 'Headboard Left', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
+    createPin(0.7, 0.18, 'Headboard Right', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
+    createPin(0.5, 0.25, 'Headboard Center Gap', PIN_WHY.EDGE, PIN_LOOK.SKINS),
+    createPin(0.2, 0.5, 'Left Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.8, 0.5, 'Right Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.5, 0.82, 'Foot Zone', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
   ],
 
   // Mattress Seams - corner seams + tag
@@ -65,13 +67,14 @@ const PIN_TEMPLATES: Record<string, () => Pin[]> = {
     createPin(0.7, 0.9, 'Floor Junction Right', PIN_WHY.EDGE, PIN_LOOK.LIVE),
   ],
 
-  // Box Spring / Bed Frame
+  // Box Spring / Bed Frame (improved positioning)
   BOX_SPRING: () => [
-    createPin(0.2, 0.3, 'Corner Joint 1', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
-    createPin(0.8, 0.3, 'Corner Joint 2', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
-    createPin(0.2, 0.7, 'Corner Joint 3', PIN_WHY.JOINT, PIN_LOOK.SKINS),
-    createPin(0.8, 0.7, 'Corner Joint 4', PIN_WHY.JOINT, PIN_LOOK.SKINS),
-    createPin(0.5, 0.5, 'Staple/Tack Zone', PIN_WHY.EDGE, PIN_LOOK.EGGS),
+    createPin(0.18, 0.25, 'Top Left Corner', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
+    createPin(0.82, 0.25, 'Top Right Corner', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
+    createPin(0.18, 0.75, 'Bottom Left Corner', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+    createPin(0.82, 0.75, 'Bottom Right Corner', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+    createPin(0.5, 0.35, 'Top Edge Staple Zone', PIN_WHY.EDGE, PIN_LOOK.EGGS),
+    createPin(0.5, 0.65, 'Bottom Edge Staple Zone', PIN_WHY.EDGE, PIN_LOOK.EGGS),
   ],
 
   // Headboard
@@ -82,12 +85,13 @@ const PIN_TEMPLATES: Record<string, () => Pin[]> = {
     createPin(0.5, 0.2, 'Top Edge', PIN_WHY.JOINT, PIN_LOOK.LIVE),
   ],
 
-  // Nightstand
+  // Nightstand (improved positioning)
   NIGHTSTAND: () => [
-    createPin(0.3, 0.35, 'Drawer Rail Left', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
-    createPin(0.7, 0.35, 'Drawer Rail Right', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
-    createPin(0.5, 0.6, 'Back Panel Edge', PIN_WHY.JOINT, PIN_LOOK.SKINS),
-    createPin(0.5, 0.85, 'Base Junction', PIN_WHY.EDGE, PIN_LOOK.LIVE),
+    createPin(0.25, 0.32, 'Drawer Rail Left', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
+    createPin(0.75, 0.32, 'Drawer Rail Right', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
+    createPin(0.5, 0.5, 'Top Surface Edge', PIN_WHY.EDGE, PIN_LOOK.SPOTS),
+    createPin(0.5, 0.65, 'Back Panel Edge', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+    createPin(0.5, 0.88, 'Base Junction', PIN_WHY.EDGE, PIN_LOOK.LIVE),
   ],
 
   // Baseboards
@@ -108,12 +112,14 @@ const PIN_TEMPLATES: Record<string, () => Pin[]> = {
     createPin(0.5, 0.9, 'Hem/Floor Area', PIN_WHY.EDGE, PIN_LOOK.LIVE),
   ],
 
-  // Upholstered furniture
+  // Upholstered furniture (improved positioning)
   UPHOLSTERED: () => [
-    createPin(0.2, 0.3, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-    createPin(0.8, 0.3, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-    createPin(0.5, 0.5, 'Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
-    createPin(0.5, 0.85, 'Lower Edge', PIN_WHY.EDGE, PIN_LOOK.LIVE),
+    createPin(0.18, 0.28, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.82, 0.28, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.35, 0.5, 'Left Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.65, 0.5, 'Right Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.5, 0.7, 'Back Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.5, 0.88, 'Lower Edge/Skirt', PIN_WHY.EDGE, PIN_LOOK.LIVE),
   ],
 
   // Luggage Rack
@@ -141,12 +147,14 @@ const PIN_TEMPLATES: Record<string, () => Pin[]> = {
     createPin(0.5, 0.85, 'Lower Edge', PIN_WHY.EDGE, PIN_LOOK.LIVE),
   ],
 
-  // Couch Seams
+  // Couch Seams (improved positioning)
   COUCH_SEAMS: () => [
-    createPin(0.25, 0.35, 'Cushion Seam 1', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-    createPin(0.5, 0.35, 'Cushion Seam 2', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-    createPin(0.75, 0.35, 'Cushion Seam 3', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-    createPin(0.5, 0.65, 'Back Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+    createPin(0.2, 0.32, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.35, 0.32, 'Left Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.5, 0.32, 'Center Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.65, 0.32, 'Right Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.8, 0.32, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+    createPin(0.5, 0.6, 'Back Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
   ],
 
   // Couch Underside
@@ -224,69 +232,126 @@ export class PhotoPinPlacementEngine implements PinPlacementEngine {
 
   /**
    * Create inspection pins around a detected object
+   * Improved placement based on furniture geometry and bed bug hiding spots
    */
   private createPinsForObject(detection: ObjectDetection, stepKey: string): Pin[] {
     const { className, x, y, width, height } = detection;
     const pins: Pin[] = [];
 
-    // Calculate object bounds
-    const left = Math.max(0, x - width / 2);
-    const right = Math.min(1, x + width / 2);
-    const top = Math.max(0, y - height / 2);
-    const bottom = Math.min(1, y + height / 2);
+    // Calculate object bounds with padding
+    const left = Math.max(0.05, x - width / 2);
+    const right = Math.min(0.95, x + width / 2);
+    const top = Math.max(0.05, y - height / 2);
+    const bottom = Math.min(0.95, y + height / 2);
+    
+    // Calculate furniture dimensions for smarter placement
+    const objWidth = right - left;
+    const objHeight = bottom - top;
+    const aspectRatio = objWidth / objHeight;
+    
+    // Determine if furniture is viewed from side, front, or angle
+    const isSideView = aspectRatio < 0.6; // Tall and narrow
+    const isFrontView = aspectRatio > 1.5; // Wide and short
+    const isAngledView = !isSideView && !isFrontView;
 
     switch (className) {
       case 'bed':
-        // Bed: pins at corners and edges
-        pins.push(
-          createPin(left + 0.05, top + 0.1, 'Headboard Area', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
-          createPin(right - 0.05, top + 0.1, 'Headboard Right', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
-          createPin(left + 0.05, y, 'Left Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
-          createPin(right - 0.05, y, 'Right Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS)
-        );
+        // Bed: smarter placement based on view angle and step type
+        if (stepKey === 'BED_OVERVIEW' || stepKey === 'HEADBOARD') {
+          // Headboard area - top of bed
+          pins.push(
+            createPin(left + objWidth * 0.2, top + objHeight * 0.15, 'Headboard Left', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
+            createPin(right - objWidth * 0.2, top + objHeight * 0.15, 'Headboard Right', PIN_WHY.MOUNT, PIN_LOOK.SPOTS),
+            createPin(x, top + objHeight * 0.1, 'Top Center Gap', PIN_WHY.EDGE, PIN_LOOK.SKINS)
+          );
+        }
+        if (stepKey === 'MATTRESS_SEAMS') {
+          // Mattress seams - corners and edges
+          pins.push(
+            createPin(left + objWidth * 0.12, top + objHeight * 0.2, 'Top Left Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(right - objWidth * 0.12, top + objHeight * 0.2, 'Top Right Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(left + objWidth * 0.12, bottom - objHeight * 0.2, 'Bottom Left Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(right - objWidth * 0.12, bottom - objHeight * 0.2, 'Bottom Right Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(x, y, 'Tag/Label Area', PIN_WHY.TAG, PIN_LOOK.EGGS)
+          );
+        } else {
+          // Side edges for other bed steps
+          pins.push(
+            createPin(left + objWidth * 0.08, y, 'Left Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(right - objWidth * 0.08, y, 'Right Edge Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(x, bottom - objHeight * 0.15, 'Foot Zone', PIN_WHY.EDGE, PIN_LOOK.SPOTS)
+          );
+        }
         break;
 
       case 'couch':
-        // Couch: pins at arm seams and cushion edges
-        pins.push(
-          createPin(left + 0.08, y - 0.1, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-          createPin(right - 0.08, y - 0.1, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-          createPin(x, y, 'Cushion Junction', PIN_WHY.SEAM, PIN_LOOK.SKINS),
-          createPin(x, bottom - 0.05, 'Lower Skirt Edge', PIN_WHY.EDGE, PIN_LOOK.LIVE)
-        );
+        // Couch: pins at seams and cushion areas
+        if (stepKey === 'COUCH_SEAMS') {
+          // Detailed seam inspection
+          pins.push(
+            createPin(left + objWidth * 0.15, y - objHeight * 0.15, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(right - objWidth * 0.15, y - objHeight * 0.15, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(x - objWidth * 0.15, y, 'Left Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(x + objWidth * 0.15, y, 'Right Cushion Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(x, y + objHeight * 0.2, 'Back Seam', PIN_WHY.SEAM, PIN_LOOK.SKINS)
+          );
+        } else {
+          // General couch overview
+          pins.push(
+            createPin(left + objWidth * 0.12, y - objHeight * 0.1, 'Left Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(right - objWidth * 0.12, y - objHeight * 0.1, 'Right Arm Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+            createPin(x, y, 'Cushion Junction', PIN_WHY.SEAM, PIN_LOOK.SKINS),
+            createPin(x, bottom - objHeight * 0.12, 'Lower Skirt Edge', PIN_WHY.EDGE, PIN_LOOK.LIVE)
+          );
+        }
         break;
 
       case 'chair':
         // Chair: pins at seat seams and joints
         pins.push(
-          createPin(x - 0.1, y, 'Left Seat Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-          createPin(x + 0.1, y, 'Right Seat Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
-          createPin(x, top + 0.15, 'Back Joint', PIN_WHY.JOINT, PIN_LOOK.SKINS)
+          createPin(x - objWidth * 0.25, y, 'Left Seat Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+          createPin(x + objWidth * 0.25, y, 'Right Seat Seam', PIN_WHY.SEAM, PIN_LOOK.SPOTS),
+          createPin(x, top + objHeight * 0.2, 'Back Joint', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+          createPin(x, bottom - objHeight * 0.1, 'Base Junction', PIN_WHY.EDGE, PIN_LOOK.LIVE)
         );
         break;
 
       case 'dining table':
-        // Could be nightstand - pins at drawer/joint areas
-        pins.push(
-          createPin(x, y - 0.1, 'Top Surface Edge', PIN_WHY.EDGE, PIN_LOOK.SPOTS),
-          createPin(x, y + 0.1, 'Drawer/Shelf Area', PIN_WHY.RAIL, PIN_LOOK.SKINS)
-        );
+        // Could be nightstand or table - pins at edges and joints
+        if (stepKey === 'NIGHTSTAND') {
+          pins.push(
+            createPin(left + objWidth * 0.15, top + objHeight * 0.3, 'Drawer Rail Left', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
+            createPin(right - objWidth * 0.15, top + objHeight * 0.3, 'Drawer Rail Right', PIN_WHY.RAIL, PIN_LOOK.SPOTS),
+            createPin(x, bottom - objHeight * 0.2, 'Back Panel Edge', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+            createPin(x, bottom - objHeight * 0.05, 'Base Junction', PIN_WHY.EDGE, PIN_LOOK.LIVE)
+          );
+        } else {
+          pins.push(
+            createPin(x, top + objHeight * 0.15, 'Top Surface Edge', PIN_WHY.EDGE, PIN_LOOK.SPOTS),
+            createPin(x, y, 'Drawer/Shelf Area', PIN_WHY.RAIL, PIN_LOOK.SKINS),
+            createPin(x, bottom - objHeight * 0.1, 'Base Joint', PIN_WHY.JOINT, PIN_LOOK.SPOTS)
+          );
+        }
         break;
 
       case 'suitcase':
         // Luggage rack area
         pins.push(
-          createPin(x - 0.1, y, 'Left Handle/Strap', PIN_WHY.STRAP, PIN_LOOK.SPOTS),
-          createPin(x + 0.1, y, 'Right Handle/Strap', PIN_WHY.STRAP, PIN_LOOK.SPOTS),
-          createPin(x, bottom - 0.05, 'Bottom Edge', PIN_WHY.EDGE, PIN_LOOK.SKINS)
+          createPin(x - objWidth * 0.25, y, 'Left Handle/Strap', PIN_WHY.STRAP, PIN_LOOK.SPOTS),
+          createPin(x + objWidth * 0.25, y, 'Right Handle/Strap', PIN_WHY.STRAP, PIN_LOOK.SPOTS),
+          createPin(left + objWidth * 0.2, bottom - objHeight * 0.15, 'Left Joint', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+          createPin(right - objWidth * 0.2, bottom - objHeight * 0.15, 'Right Joint', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+          createPin(x, bottom - objHeight * 0.05, 'Bottom Edge', PIN_WHY.EDGE, PIN_LOOK.LIVE)
         );
         break;
 
       default:
-        // Generic object - place edge pins
+        // Generic object - place strategic edge pins
         pins.push(
-          createPin(left + 0.05, y, 'Left Edge', PIN_WHY.EDGE, PIN_LOOK.SPOTS),
-          createPin(right - 0.05, y, 'Right Edge', PIN_WHY.EDGE, PIN_LOOK.SPOTS)
+          createPin(left + objWidth * 0.1, top + objHeight * 0.2, 'Top Left Corner', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
+          createPin(right - objWidth * 0.1, top + objHeight * 0.2, 'Top Right Corner', PIN_WHY.JOINT, PIN_LOOK.SPOTS),
+          createPin(left + objWidth * 0.1, bottom - objHeight * 0.2, 'Bottom Left Corner', PIN_WHY.JOINT, PIN_LOOK.SKINS),
+          createPin(right - objWidth * 0.1, bottom - objHeight * 0.2, 'Bottom Right Corner', PIN_WHY.JOINT, PIN_LOOK.SKINS)
         );
     }
 

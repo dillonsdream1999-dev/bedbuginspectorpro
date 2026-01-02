@@ -85,6 +85,11 @@ export default function App() {
               backgroundColor: colors.background,
             },
             animation: 'slide_from_right',
+            animationDuration: 300,
+            animationTypeForReplace: 'push',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true,
           }}
         >
           <Stack.Screen

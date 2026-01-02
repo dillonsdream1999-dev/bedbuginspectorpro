@@ -16,6 +16,12 @@ export interface Pin {
   status: PinStatus;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
 export interface ScanStep {
   id: string;
   key: string;
@@ -28,6 +34,9 @@ export interface ScanStep {
   photoWidth?: number;
   photoHeight?: number;
   pins: Pin[];
+  checklistItems: ChecklistItem[];
+  // Store if pins have been manually adjusted
+  pinsManuallyAdjusted?: boolean;
 }
 
 export interface PhotoScanSession {

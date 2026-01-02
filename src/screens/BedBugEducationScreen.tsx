@@ -3,11 +3,12 @@
  * Educational content about bed bugs, life stages, prevention, and professional treatment
  */
 
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Button } from '../components/Button';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
 import { RootStackParamList } from '../types';
@@ -189,16 +190,50 @@ const WHY_DIY_FAILS = [
   },
 ];
 
+const QUICK_LINKS = [
+  { id: 'life-stages', label: 'Life Stages', icon: 'git-branch-outline', color: colors.accent },
+  { id: 'signs', label: 'Signs', icon: 'alert-circle', color: colors.primary },
+  { id: 'prevention', label: 'Prevention', icon: 'shield-checkmark', color: colors.success },
+  { id: 'spread', label: 'How They Spread', icon: 'swap-horizontal', color: colors.accent },
+  { id: 'diy-fails', label: 'Why DIY Fails', icon: 'warning', color: colors.primary },
+];
+
 export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionPositions = useRef<{ [key: string]: number }>({});
+
   useEffect(() => {
     trackPageView('education');
   }, []);
 
+  const handleSectionLayout = (sectionId: string) => (event: any) => {
+    const { y } = event.nativeEvent.layout;
+    sectionPositions.current[sectionId] = y;
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    const position = sectionPositions.current[sectionId];
+    if (position !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ 
+        y: Math.max(0, position - spacing.md), 
+        animated: true 
+      });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView 
+        ref={scrollViewRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          // Force remeasure when content changes
+        }}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -211,8 +246,35 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
+        {/* Quick Links */}
+        <View style={styles.quickLinksContainer}>
+          <Text style={styles.quickLinksTitle}>Quick Links</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickLinksScroll}
+          >
+            {QUICK_LINKS.map((link) => (
+              <Pressable
+                key={link.id}
+                style={({ pressed }) => [
+                  styles.quickLink,
+                  pressed && styles.quickLinkPressed,
+                ]}
+                onPress={() => scrollToSection(link.id)}
+              >
+                <Ionicons name={link.icon as any} size={18} color={link.color} />
+                <Text style={styles.quickLinkText}>{link.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Life Stages Section */}
-        <View style={styles.section}>
+        <View 
+          onLayout={handleSectionLayout('life-stages')}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="git-branch-outline" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>Life Stages</Text>
@@ -250,7 +312,10 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Signs of Infestation Section */}
-        <View style={styles.section}>
+        <View 
+          onLayout={handleSectionLayout('signs')}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="alert-circle" size={20} color={colors.primary} />
             <Text style={styles.sectionTitle}>Signs of Infestation</Text>
@@ -270,7 +335,10 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Prevention Section */}
-        <View style={styles.section}>
+        <View 
+          onLayout={handleSectionLayout('prevention')}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="shield-checkmark" size={20} color={colors.success} />
             <Text style={styles.sectionTitle}>Prevention Tips</Text>
@@ -293,7 +361,10 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* How They Spread Section */}
-        <View style={styles.section}>
+        <View 
+          onLayout={handleSectionLayout('spread')}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="swap-horizontal" size={20} color={colors.accent} />
             <Text style={styles.sectionTitle}>How They Spread</Text>
@@ -364,7 +435,10 @@ export const BedBugEducationScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Why DIY Fails Section - At the bottom */}
-        <View style={styles.section}>
+        <View 
+          onLayout={handleSectionLayout('diy-fails')}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="warning" size={20} color={colors.primary} />
             <Text style={styles.sectionTitle}>Why DIY Treatments Fail</Text>
@@ -415,68 +489,114 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
-    paddingTop: spacing.md,
+    marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
   },
   headerIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: 'rgba(255, 61, 0, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 2,
     borderColor: 'rgba(255, 61, 0, 0.3)',
   },
   title: {
-    ...typography.heading1,
+    ...typography.heading2,
+    fontSize: 24,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     maxWidth: 300,
+    lineHeight: 20,
+  },
+  // Quick Links
+  quickLinksContainer: {
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quickLinksTitle: {
+    ...typography.captionBold,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  quickLinksScroll: {
+    gap: spacing.xs,
+  },
+  quickLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs + 2,
+    marginRight: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  quickLinkPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
+  },
+  quickLinkText: {
+    ...typography.captionBold,
+    fontSize: 13,
+    color: colors.textPrimary,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
   sectionTitle: {
-    ...typography.heading2,
+    ...typography.heading3,
+    fontSize: 18,
     color: colors.textPrimary,
   },
   sectionIntro: {
     ...typography.body,
+    fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    lineHeight: 24,
+    marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   // Life Stage Cards with Images
   stageCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
   stageImageContainer: {
     width: '100%',
     backgroundColor: '#FAFAFA',
-    padding: spacing.sm,
+    padding: spacing.xs,
   },
   stageImage: {
     width: '100%',
@@ -486,17 +606,17 @@ const styles = StyleSheet.create({
   stageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    paddingBottom: spacing.sm,
+    padding: spacing.sm + 4,
+    paddingBottom: spacing.xs,
   },
   stageIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255, 61, 0, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   stageInfo: {
     flex: 1,

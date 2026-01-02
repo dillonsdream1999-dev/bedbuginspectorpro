@@ -19,6 +19,8 @@ interface PhotoScanState {
   startSession: (roomType: RoomType) => void;
   setStepPhoto: (stepId: string, photoUri: string, width?: number, height?: number) => void;
   updatePinStatus: (stepId: string, pinId: string, status: PinStatus) => void;
+  updatePinPosition: (stepId: string, pinId: string, x: number, y: number) => void;
+  toggleChecklistItem: (stepId: string, itemId: string) => void;
   markStepReviewed: (stepId: string) => void;
   nextStep: () => boolean; // returns true if moved, false if at end
   previousStep: () => void;
@@ -87,6 +89,54 @@ export const usePhotoScanStore = create<PhotoScanState>((set, get) => ({
         );
 
         return { ...step, pins: updatedPins };
+      });
+
+      return {
+        session: { ...state.session, steps: updatedSteps },
+      };
+    });
+  },
+
+  toggleChecklistItem: (stepId: string, itemId: string) => {
+    set((state) => {
+      if (!state.session) return state;
+
+      const updatedSteps = state.session.steps.map((step) => {
+        if (step.id !== stepId) return step;
+
+        const updatedChecklist = step.checklistItems.map((item) =>
+          item.id === itemId ? { ...item, checked: !item.checked } : item
+        );
+
+        return { ...step, checklistItems: updatedChecklist };
+      });
+
+      return {
+        session: { ...state.session, steps: updatedSteps },
+      };
+    });
+  },
+
+  updatePinPosition: (stepId: string, pinId: string, x: number, y: number) => {
+    set((state) => {
+      if (!state.session) return state;
+
+      // Clamp coordinates to 0-1 range
+      const clampedX = Math.max(0, Math.min(1, x));
+      const clampedY = Math.max(0, Math.min(1, y));
+
+      const updatedSteps = state.session.steps.map((step) => {
+        if (step.id !== stepId) return step;
+
+        const updatedPins = step.pins.map((pin) =>
+          pin.id === pinId ? { ...pin, x: clampedX, y: clampedY } : pin
+        );
+
+        return { 
+          ...step, 
+          pins: updatedPins,
+          pinsManuallyAdjusted: true,
+        };
       });
 
       return {

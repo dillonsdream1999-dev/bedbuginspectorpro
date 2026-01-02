@@ -19,7 +19,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to take photos of potential bed bug hiding spots during your room inspection.",
         "NSPhotoLibraryUsageDescription": "This app saves inspection photos to your library for your records.",
-        "NSLocationWhenInUseUsageDescription": "This app uses your location to connect you with local pest control professionals in your area."
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to connect you with local pest control professionals in your area.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -35,7 +36,11 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -58,9 +63,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "4c9b9548-e64d-4957-8da6-511b4a388afb"
       }
     },
-    "owner": "YOUR_EXPO_USERNAME"
+    "owner": "dillonsdream199"
   }
 }

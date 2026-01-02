@@ -2,14 +2,14 @@
  * Lead Flow Screen - Territory-based provider lookup
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Alert,
   Linking,
   Platform,
@@ -17,6 +17,7 @@ import {
   Modal,
   KeyboardAvoidingView,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,43 +62,78 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     detectZip();
   }, []);
 
-  // Look up provider when ZIP changes
-  useEffect(() => {
-    if (isValidZip(zip)) {
-      lookupProvider(zip);
-    } else {
-      setProvider(null);
-      setProviderError(null);
-    }
-  }, [zip]);
-
-  const lookupProvider = async (zipCode: string) => {
+  // Memoize lookup function to prevent infinite loops
+  const lookupProvider = useCallback(async (zipCode: string) => {
     setIsLookingUpProvider(true);
     setProviderError(null);
     setErrorType(null);
     
-    const result = await getProviderByZip(zipCode);
-    
-    if (result.found && result.provider) {
-      setProvider(result.provider);
-      setMetroArea(result.metroArea || null); // Store DMA info
-      setProviderError(null);
-      setErrorType(null);
-      // Track provider found
-      trackProviderLookup(zipCode, true, result.provider.companyName);
+    try {
+      console.log('Looking up provider for ZIP:', zipCode);
+      const result = await getProviderByZip(zipCode);
+      console.log('Provider lookup result:', result);
+      
+      if (result.found && result.provider) {
+        setProvider(result.provider);
+        setMetroArea(result.metroArea || null); // Store DMA info
+        setProviderError(null);
+        setErrorType(null);
+        // Track provider found
+        trackProviderLookup(zipCode, true, result.provider.companyName);
+      } else {
+        setProvider(null);
+        setMetroArea(null);
+        setProviderError(result.error || 'No provider found for this area');
+        setErrorType(result.errorType || null);
+        // Track provider not found (only for no_territory, not network errors)
+        if (result.errorType === 'no_territory' || result.errorType === 'no_company') {
+          trackProviderLookup(zipCode, false);
+        }
+      }
+    } catch (error) {
+      console.error('Error in lookupProvider:', error);
+      setProvider(null);
+      setProviderError('Failed to lookup provider. Please try again.');
+      setErrorType('unknown');
+    } finally {
+      setIsLookingUpProvider(false);
+    }
+  }, [trackProviderLookup]);
+
+  // Use ref to prevent duplicate lookups
+  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastLookedUpZipRef = useRef<string>('');
+
+  // Look up provider when ZIP changes (with debounce)
+  useEffect(() => {
+    // Clear any pending lookups
+    if (lookupTimeoutRef.current) {
+      clearTimeout(lookupTimeoutRef.current);
+    }
+
+    if (isValidZip(zip)) {
+      // Debounce to avoid rapid lookups
+      if (lastLookedUpZipRef.current === zip) {
+        return; // Already looked up this ZIP
+      }
+
+      lookupTimeoutRef.current = setTimeout(() => {
+        lastLookedUpZipRef.current = zip;
+        lookupProvider(zip);
+      }, 300);
     } else {
       setProvider(null);
-      setMetroArea(null);
-      setProviderError(result.error || null);
-      setErrorType(result.errorType || null);
-      // Track provider not found (only for no_territory, not network errors)
-      if (result.errorType === 'no_territory' || result.errorType === 'no_company') {
-        trackProviderLookup(zipCode, false);
-      }
+      setProviderError(null);
+      setErrorType(null);
+      lastLookedUpZipRef.current = '';
     }
-    
-    setIsLookingUpProvider(false);
-  };
+
+    return () => {
+      if (lookupTimeoutRef.current) {
+        clearTimeout(lookupTimeoutRef.current);
+      }
+    };
+  }, [zip, lookupProvider]);
 
   const detectZip = async () => {
     setIsDetectingZip(true);
@@ -282,16 +318,22 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => navigation.goBack()}
+          <Pressable
+            style={({ pressed }) => [
+              styles.closeButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              navigation.goBack();
+            }}
           >
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
+            <Ionicons name="close" size={22} color={colors.textSecondary} />
+          </Pressable>
           <Text style={styles.title}>{COPY.LEAD_TITLE}</Text>
         </View>
-
-        <Text style={styles.supportingText}>{COPY.CTA_SUPPORTING}</Text>
 
         {/* ZIP input */}
         <View style={styles.inputSection}>
@@ -348,6 +390,28 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={styles.providerPhone}>{provider.phone}</Text>
                 </View>
               )}
+              
+              {/* Company Description */}
+              {provider.description && (
+                <View style={styles.providerDescription}>
+                  <Text style={styles.providerDescriptionText}>{provider.description}</Text>
+                </View>
+              )}
+              
+              {/* Services List */}
+              {provider.services && provider.services.length > 0 && (
+                <View style={styles.providerServices}>
+                  <Text style={styles.providerServicesTitle}>Services Offered</Text>
+                  <View style={styles.servicesList}>
+                    {provider.services.map((service, index) => (
+                      <View key={index} style={styles.serviceItem}>
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                        <Text style={styles.serviceText}>{service}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Action Buttons - Only shown when provider is found */}
@@ -355,14 +419,22 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.actionsTitle}>Connect Now</Text>
               
               {/* Call Now Button */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonCall]}
-                onPress={() => handleAction('call_now')}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  styles.actionButtonCall,
+                  pressed && !isSubmitting && styles.actionButtonPressed,
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }
+                  handleAction('call_now');
+                }}
                 disabled={isSubmitting}
-                activeOpacity={0.8}
               >
                 <View style={styles.actionButtonIcon}>
-                  <Ionicons name="call" size={28} color={colors.textOnPrimary} />
+                  <Ionicons name="call" size={24} color={colors.textOnPrimary} />
                 </View>
                 <View style={styles.actionButtonContent}>
                   <Text style={styles.actionButtonTitle}>Call Now</Text>
@@ -370,18 +442,26 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                     Speak directly with {provider.companyName}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.textOnPrimary} />
-              </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={20} color={colors.textOnPrimary} />
+              </Pressable>
 
               {/* Text Now Button */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonText]}
-                onPress={() => handleAction('text_now')}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  styles.actionButtonText,
+                  pressed && !isSubmitting && styles.actionButtonPressed,
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }
+                  handleAction('text_now');
+                }}
                 disabled={isSubmitting}
-                activeOpacity={0.8}
               >
                 <View style={styles.actionButtonIcon}>
-                  <Ionicons name="chatbubble" size={28} color={colors.textOnPrimary} />
+                  <Ionicons name="chatbubble" size={24} color={colors.textOnPrimary} />
                 </View>
                 <View style={styles.actionButtonContent}>
                   <Text style={styles.actionButtonTitle}>Text Now</Text>
@@ -389,18 +469,26 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                     Send a message to {provider.companyName}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.textOnPrimary} />
-              </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={20} color={colors.textOnPrimary} />
+              </Pressable>
 
               {/* Request Callback Button */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonCallback]}
-                onPress={() => handleAction('callback')}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButton,
+                  styles.actionButtonCallback,
+                  pressed && !isSubmitting && styles.actionButtonPressed,
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  handleAction('callback');
+                }}
                 disabled={isSubmitting}
-                activeOpacity={0.8}
               >
                 <View style={styles.actionButtonIconOutline}>
-                  <Ionicons name="time" size={28} color={colors.accent} />
+                  <Ionicons name="time" size={24} color={colors.accent} />
                 </View>
                 <View style={styles.actionButtonContent}>
                   <Text style={styles.actionButtonTitleDark}>Request Callback</Text>
@@ -408,8 +496,8 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                     {provider.companyName} will call you back
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </Pressable>
             </View>
 
             {isSubmitting && (
@@ -435,14 +523,21 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                 {errorType === 'timeout' ? 'Request Timed Out' : 'Connection Error'}
               </Text>
               <Text style={styles.errorText}>{providerError}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => lookupProvider(zip)}
-                activeOpacity={0.8}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  lookupProvider(zip);
+                }}
               >
-                <Ionicons name="refresh" size={20} color={colors.textOnPrimary} />
+                <Ionicons name="refresh" size={18} color={colors.textOnPrimary} />
                 <Text style={styles.retryButtonText}>Try Again</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         )}
@@ -454,17 +549,23 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.actionsSection}>
             <Text style={styles.actionsTitle}>Find Local Experts</Text>
             
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonSearch]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.actionButtonSearch,
+                pressed && styles.actionButtonPressed,
+              ]}
               onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
                 trackGoogleSearchClicked(zip);
                 const searchQuery = encodeURIComponent(`bed bug heat treatment ${zip}`);
                 Linking.openURL(`https://www.google.com/search?q=${searchQuery}`);
               }}
-              activeOpacity={0.8}
             >
               <View style={styles.actionButtonIconOutline}>
-                <Ionicons name="search" size={28} color={colors.primary} />
+                <Ionicons name="search" size={24} color={colors.primary} />
               </View>
               <View style={styles.actionButtonContent}>
                 <Text style={styles.actionButtonTitleDark}>See Local Experts</Text>
@@ -472,8 +573,8 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                   Find bed bug treatment specialists near you
                 </Text>
               </View>
-              <Ionicons name="open-outline" size={24} color={colors.textSecondary} />
-            </TouchableOpacity>
+              <Ionicons name="open-outline" size={20} color={colors.textSecondary} />
+            </Pressable>
           </View>
         )}
 
@@ -517,12 +618,20 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.modalSubtitle}>
                 {provider?.companyName || 'A local expert'} will call you back
               </Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowCallbackForm(false)}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalCloseButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setShowCallbackForm(false);
+                }}
               >
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             <View style={styles.formSection}>
@@ -569,11 +678,18 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.submitCallbackButton}
-                onPress={handleCallbackSubmit}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitCallbackButton,
+                  (pressed || isSubmitting) && { opacity: 0.8 },
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }
+                  handleCallbackSubmit();
+                }}
                 disabled={isSubmitting}
-                activeOpacity={0.8}
               >
                 {isSubmitting ? (
                   <ActivityIndicator color={colors.textOnPrimary} />
@@ -583,15 +699,23 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.submitCallbackText}>Submit Request</Text>
                   </>
                 )}
-              </TouchableOpacity>
+              </Pressable>
 
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowCallbackForm(false)}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setShowCallbackForm(false);
+                }}
                 disabled={isSubmitting}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             <Text style={styles.privacyNote}>
@@ -611,44 +735,42 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  buttonPressed: {
+    opacity: 0.7,
+  },
   title: {
-    ...typography.heading2,
+    ...typography.heading3,
+    fontSize: 20,
     color: colors.textPrimary,
     flex: 1,
   },
-  supportingText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xl,
-    lineHeight: 24,
-  },
   inputSection: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   // Provider card styles
   providerCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    padding: spacing.sm + 4,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.success + '40',
   },
@@ -657,13 +779,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   providerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.accent + '20',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   providerInfo: {
     flex: 1,
@@ -713,6 +835,44 @@ const styles = StyleSheet.create({
   providerPhone: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  providerDescription: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  providerDescriptionText: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  providerServices: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  providerServicesTitle: {
+    ...typography.bodyBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs + 2,
+  },
+  servicesList: {
+    gap: spacing.xs,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  serviceText: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
   },
   noProviderSection: {
     marginBottom: spacing.lg,
@@ -782,19 +942,24 @@ const styles = StyleSheet.create({
   },
   // Action buttons section
   actionsSection: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   actionsTitle: {
     ...typography.heading3,
+    fontSize: 18,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    padding: spacing.sm + 4,
+    marginBottom: spacing.xs,
+  },
+  actionButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   actionButtonCall: {
     backgroundColor: colors.primary,
@@ -813,22 +978,22 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   actionButtonIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   actionButtonIconOutline: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.accent + '20',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   actionButtonContent: {
     flex: 1,
