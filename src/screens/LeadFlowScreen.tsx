@@ -298,7 +298,10 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <Button
             title={COPY.BTN_DONE}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              setSubmitted(false);
+              setSubmittedAction(null);
+            }}
             variant="primary"
             size="large"
             style={styles.doneButton}
