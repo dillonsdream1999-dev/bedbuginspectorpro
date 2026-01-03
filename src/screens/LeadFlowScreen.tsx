@@ -277,6 +277,17 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const formatPhoneDisplay = (phone: string): string => {
+    // Remove all non-digits
+    const cleaned = phone.replace(/\D/g, '');
+    // Format as (XXX) XXX-XXXX
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    // Return original if not a standard 10-digit number
+    return phone;
+  };
+
   if (submitted) {
     const providerName = provider?.companyName;
     return (
@@ -368,29 +379,34 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
         {provider && (
           <>
             <View style={styles.providerCard}>
+              {/* Header with Icon, Name, and Verified Badge */}
               <View style={styles.providerHeader}>
                 <View style={styles.providerIcon}>
-                  <Ionicons name="business" size={24} color={colors.accent} />
+                  <Ionicons name="business" size={28} color={colors.accent} />
                 </View>
                 <View style={styles.providerInfo}>
                   <Text style={styles.providerLabel}>Your Local Expert</Text>
                   <Text style={styles.providerName}>{provider.companyName}</Text>
-                  {metroArea && (
-                    <View style={styles.metroAreaRow}>
-                      <Ionicons name="location" size={12} color={colors.textMuted} />
-                      <Text style={styles.metroAreaText}>{metroArea} Area</Text>
-                    </View>
-                  )}
                 </View>
                 <View style={styles.providerBadge}>
-                  <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+                  <Ionicons name="shield-checkmark" size={16} color={colors.success} />
                   <Text style={styles.providerBadgeText}>Verified</Text>
                 </View>
               </View>
+
+              {/* Location */}
+              {metroArea && (
+                <View style={styles.providerLocation}>
+                  <Ionicons name="location" size={14} color={colors.textMuted} />
+                  <Text style={styles.metroAreaText}>{metroArea} Area</Text>
+                </View>
+              )}
+
+              {/* Phone Number */}
               {provider.phone && (
                 <View style={styles.providerContact}>
-                  <Ionicons name="call" size={16} color={colors.textSecondary} />
-                  <Text style={styles.providerPhone}>{provider.phone}</Text>
+                  <Ionicons name="call" size={16} color={colors.primary} />
+                  <Text style={styles.providerPhone}>{formatPhoneDisplay(provider.phone)}</Text>
                 </View>
               )}
               
@@ -408,7 +424,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={styles.servicesList}>
                     {provider.services.map((service, index) => (
                       <View key={index} style={styles.serviceItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                        <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                         <Text style={styles.serviceText}>{service}</Text>
                       </View>
                     ))}
@@ -772,110 +788,132 @@ const styles = StyleSheet.create({
   providerCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.sm + 4,
+    padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.success + '40',
+    borderWidth: 1.5,
+    borderColor: colors.success + '50',
+    ...shadows.sm,
   },
   providerHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
   },
   providerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.accent + '20',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.accent + '25',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
   },
   providerInfo: {
     flex: 1,
+    marginTop: 2,
   },
   providerLabel: {
     ...typography.small,
-    color: colors.textSecondary,
-    marginBottom: 2,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   providerName: {
-    ...typography.bodyBold,
+    ...typography.heading3,
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.textPrimary,
+    lineHeight: 26,
   },
-  metroAreaRow: {
+  providerLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
+    marginBottom: spacing.sm,
+    marginLeft: 64, // Align with company name (icon width + margin)
+    gap: 6,
   },
   metroAreaText: {
-    ...typography.small,
-    color: colors.textMuted,
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   providerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.success + '20',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    backgroundColor: colors.success + '25',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.full,
-    gap: 4,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: colors.success + '30',
   },
   providerBadgeText: {
     ...typography.small,
+    fontSize: 11,
     color: colors.success,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   providerContact: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.sm,
   },
   providerPhone: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    ...typography.bodyBold,
+    fontSize: 16,
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
   providerDescription: {
     marginTop: spacing.sm,
+    marginBottom: spacing.sm,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   providerDescriptionText: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   providerServices: {
     marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   providerServicesTitle: {
     ...typography.bodyBold,
-    fontSize: 13,
+    fontSize: 15,
     color: colors.textPrimary,
-    marginBottom: spacing.xs + 2,
+    marginBottom: spacing.sm,
   },
   servicesList: {
-    gap: spacing.xs,
+    gap: spacing.sm - 2,
   },
   serviceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   serviceText: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textSecondary,
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textPrimary,
     flex: 1,
+    lineHeight: 20,
   },
   noProviderSection: {
     marginBottom: spacing.lg,
