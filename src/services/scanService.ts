@@ -291,6 +291,8 @@ export async function createLead(
       hasCustomerInfo: !!(contactInfo?.customerName || contactInfo?.customerPhone)
     });
 
+    console.log('[ScanService] Attempting to insert lead with data:', JSON.stringify(dbLead, null, 2));
+    
     const { data, error } = await supabase
       .from('leads')
       .insert(dbLead)
@@ -303,8 +305,13 @@ export async function createLead(
         details: error.details,
         hint: error.hint,
         code: error.code,
-        leadData: dbLead
+        leadData: dbLead,
+        fullError: JSON.stringify(error, null, 2)
       });
+      
+      // Also log to help with debugging
+      console.error('[ScanService] Full error object:', error);
+      
       return { success: false, error: error.message };
     }
 
