@@ -189,8 +189,15 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     });
     
     if (!leadResult.success) {
-      console.warn('Failed to save lead:', leadResult.error);
+      console.error('[LeadFlowScreen] Failed to save lead:', {
+        error: leadResult.error,
+        zip,
+        action,
+        providerId: provider?.id
+      });
       // Continue anyway - don't block user from getting help
+    } else {
+      console.log('[LeadFlowScreen] Lead saved successfully:', { leadId: leadResult.leadId });
     }
 
     // Track lead submission and contact action
@@ -252,7 +259,12 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     });
     
     if (!leadResult.success) {
-      console.error('Failed to save callback request:', leadResult.error);
+      console.error('[LeadFlowScreen] Failed to save callback request:', {
+        error: leadResult.error,
+        zip,
+        customerName: callbackName,
+        customerPhone: callbackPhone
+      });
       Alert.alert(
         'Request Failed',
         'We couldn\'t submit your callback request. Please try calling or texting directly.',
@@ -262,7 +274,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    console.log('Callback request submitted successfully. Lead ID:', leadResult.leadId);
+    console.log('[LeadFlowScreen] Callback request submitted successfully. Lead ID:', leadResult.leadId);
     console.log('Note: Email notifications require setup. See docs/CALLBACK_NOTIFICATION_SETUP.md');
 
     // Track lead submission and contact action

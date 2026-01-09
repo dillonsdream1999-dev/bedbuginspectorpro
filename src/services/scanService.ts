@@ -283,6 +283,14 @@ export async function createLead(
       notes: contactInfo?.notes,
     };
 
+    console.log('[ScanService] Creating lead:', {
+      zip,
+      roomType,
+      contactPref,
+      hasProvider: !!contactInfo?.providerId,
+      hasCustomerInfo: !!(contactInfo?.customerName || contactInfo?.customerPhone)
+    });
+
     const { data, error } = await supabase
       .from('leads')
       .insert(dbLead)
@@ -290,13 +298,20 @@ export async function createLead(
       .single();
 
     if (error) {
-      console.error('Error creating lead:', error);
+      console.error('[ScanService] Error creating lead:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        leadData: dbLead
+      });
       return { success: false, error: error.message };
     }
 
+    console.log('[ScanService] Lead created successfully:', { leadId: data?.id });
     return { success: true, leadId: data?.id };
   } catch (err) {
-    console.error('Exception creating lead:', err);
+    console.error('[ScanService] Exception creating lead:', err);
     return { success: false, error: String(err) };
   }
 }
