@@ -193,7 +193,14 @@ export async function getProviderByZip(zip: string): Promise<TerritoryLookupResu
 
     if (!ownership) {
       console.log('[ProviderService] No ownership found (neither direct nor via DMA)');
-      return { found: false, errorType: 'no_company' };
+      // Still return territory info even if no provider, so leads can be saved
+      return { 
+        found: false, 
+        errorType: 'no_company',
+        territoryId: territory.id,
+        territoryName: territory.name,
+        metroArea: metroArea,
+      };
     }
 
     // Step 3: Get company details

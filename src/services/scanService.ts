@@ -48,6 +48,7 @@ interface DbLead {
   session_id?: string;
   contact_pref: string;
   status: string;
+  territory_id?: string; // Required by database schema
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
@@ -255,6 +256,7 @@ export async function createLead(
   contactPref: string,
   sessionId?: string,
   contactInfo?: {
+    territoryId?: string; // Territory ID is required by database
     customerName?: string;
     customerPhone?: string;
     customerEmail?: string;
@@ -269,12 +271,24 @@ export async function createLead(
   }
 
   try {
+    // Territory ID is required by the database schema
+    // It should be provided from the provider lookup in LeadFlowScreen
+    let territoryId = contactInfo?.territoryId;
+    
+    if (!territoryId) {
+      console.error('[ScanService] ERROR: territoryId is required but not provided. ZIP:', zip);
+      // If territory_id is NOT NULL in the database, this will fail
+      // The app should always look up the provider first, which provides territoryId
+      // For now, we'll still attempt the insert - it will fail with a clear error if territory_id is required
+    }
+
     const dbLead: DbLead = {
       zip,
       room_type: roomType,
       session_id: sessionId,
       contact_pref: contactPref,
       status: 'new',
+      territory_id: territoryId || undefined, // May be undefined if not provided - DB will enforce
       customer_name: contactInfo?.customerName,
       customer_phone: contactInfo?.customerPhone,
       customer_email: contactInfo?.customerEmail,

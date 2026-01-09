@@ -48,6 +48,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
   // Provider lookup state
   const [provider, setProvider] = useState<Provider | null>(null);
   const [metroArea, setMetroArea] = useState<string | null>(null); // DMA
+  const [territoryId, setTerritoryId] = useState<string | null>(null); // Store territory ID for leads
   const [isLookingUpProvider, setIsLookingUpProvider] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<LookupErrorType | null>(null);
@@ -73,16 +74,22 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       const result = await getProviderByZip(zipCode);
       console.log('Provider lookup result:', result);
       
+      // Always store territory info if available (needed for leads)
+      if (result.territoryId) {
+        setTerritoryId(result.territoryId);
+      }
+      if (result.metroArea) {
+        setMetroArea(result.metroArea);
+      }
+      
       if (result.found && result.provider) {
         setProvider(result.provider);
-        setMetroArea(result.metroArea || null); // Store DMA info
         setProviderError(null);
         setErrorType(null);
         // Track provider found
         trackProviderLookup(zipCode, true, result.provider.companyName);
       } else {
         setProvider(null);
-        setMetroArea(null);
         setProviderError(result.error || 'No provider found for this area');
         setErrorType(result.errorType || null);
         // Track provider not found (only for no_territory, not network errors)
@@ -184,6 +191,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
 
     // IMPORTANT: Create lead record BEFORE initiating call/text
     const leadResult = await createLead(zip, roomType, action, sessionId, {
+      territoryId: territoryId || undefined,
       providerId: provider?.id,
       providerName: provider?.companyName,
     });
@@ -250,6 +258,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     });
     
     const leadResult = await createLead(zip, roomType, 'callback', sessionId, {
+      territoryId: territoryId || undefined,
       customerName: callbackName.trim(),
       customerPhone: callbackPhone.trim(),
       customerEmail: callbackEmail.trim() || undefined,
