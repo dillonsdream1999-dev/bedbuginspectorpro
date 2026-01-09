@@ -205,10 +205,8 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       Linking.openURL(`tel:${cleanPhone}`);
     } else if (action === 'text_now') {
       trackContactAction('text', zip, provider?.companyName);
-      const message = encodeURIComponent(
-        `Hi${provider ? ` ${provider.companyName}` : ''}, I'm looking for bed bug inspection help. My ZIP code is ${zip}. Can you provide more information?`
-      );
-      Linking.openURL(`sms:${cleanPhone}?body=${message}`);
+      // Use traditional SMS format without body parameter to avoid popup
+      Linking.openURL(`sms:${cleanPhone}`);
     }
 
     setSubmitted(true);
@@ -236,6 +234,14 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     const sessionId = session?.id;
 
     // Create lead with contact info
+    console.log('Submitting callback request:', {
+      zip,
+      providerId: provider?.id,
+      providerName: provider?.companyName,
+      customerName: callbackName.trim(),
+      customerPhone: callbackPhone.trim(),
+    });
+    
     const leadResult = await createLead(zip, roomType, 'callback', sessionId, {
       customerName: callbackName.trim(),
       customerPhone: callbackPhone.trim(),
@@ -246,7 +252,7 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     });
     
     if (!leadResult.success) {
-      console.warn('Failed to save callback request:', leadResult.error);
+      console.error('Failed to save callback request:', leadResult.error);
       Alert.alert(
         'Request Failed',
         'We couldn\'t submit your callback request. Please try calling or texting directly.',
@@ -255,6 +261,9 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
       setIsSubmitting(false);
       return;
     }
+
+    console.log('Callback request submitted successfully. Lead ID:', leadResult.leadId);
+    console.log('Note: Email notifications require setup. See docs/CALLBACK_NOTIFICATION_SETUP.md');
 
     // Track lead submission and contact action
     trackLeadSubmitted(zip, 'callback', !!provider, provider?.companyName);
@@ -404,10 +413,19 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
 
               {/* Phone Number */}
               {provider.phone && (
-                <View style={styles.providerContact}>
+                <Pressable
+                  style={styles.providerContact}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    const cleanPhone = provider.phone.replace(/\D/g, '');
+                    Linking.openURL(`tel:${cleanPhone}`);
+                  }}
+                >
                   <Ionicons name="call" size={16} color={colors.primary} />
                   <Text style={styles.providerPhone}>{formatPhoneDisplay(provider.phone)}</Text>
-                </View>
+                </Pressable>
               )}
               
               {/* Company Description */}
@@ -624,11 +642,21 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowCallbackForm(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <Pressable
           style={styles.modalOverlay}
+          onPress={() => setShowCallbackForm(false)}
         >
-          <View style={styles.modalContent}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalContent}>
+                <ScrollView
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
             <View style={styles.modalHeader}>
               <View style={styles.modalIconContainer}>
                 <Ionicons name="call" size={32} color={colors.accent} />
@@ -740,8 +768,11 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.privacyNote}>
               Your information will only be shared with {provider?.companyName || 'the local provider'} to process your callback request.
             </Text>
-          </View>
-        </KeyboardAvoidingView>
+                </ScrollView>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -1179,13 +1210,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
+  modalKeyboardView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     backgroundColor: colors.background,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
+    maxHeight: '90%',
+  },
+  modalScrollContent: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
-    maxHeight: '90%',
   },
   modalHeader: {
     alignItems: 'center',

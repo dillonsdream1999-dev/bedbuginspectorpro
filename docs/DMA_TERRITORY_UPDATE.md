@@ -49,3 +49,5 @@ The database has been updated to reflect a new DMA (Designated Market Area) to t
 - The foreign key relationship must be properly defined in Supabase for the join to work
 
 
+
+

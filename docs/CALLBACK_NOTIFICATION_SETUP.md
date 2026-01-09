@@ -24,105 +24,97 @@ When a customer requests a callback through the app:
 
 ## Setting Up Email Notifications
 
+**IMPORTANT:** The TypeScript code shown below is for Supabase Edge Functions, NOT SQL. Do not try to run it as SQL. Follow the setup steps below.
+
 To actually send email notifications to territory owners, you have several options:
 
-### Option 1: Supabase Edge Functions (Recommended)
+### Option 1: Supabase Edge Functions with Resend (Recommended)
 
-1. Create an Edge Function that sends emails:
+**Step 1: Deploy the Edge Function**
 
-```typescript
-// supabase/functions/send-callback-notification/index.ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+The Edge Function code is already created at `supabase/functions/send-callback-notification/index.ts`. To deploy it:
 
-serve(async (req) => {
-  const { leadId, ownerEmail, customerName, customerPhone, customerEmail, companyName, zip } = await req.json()
-  
-  // Use an email service (SendGrid, Resend, etc.)
-  const emailBody = `
-    New Callback Request
-    
-    Company: ${companyName}
-    Customer: ${customerName}
-    Phone: ${customerPhone}
-    Email: ${customerEmail || 'Not provided'}
-    ZIP Code: ${zip}
-    Lead ID: ${leadId}
-    
-    Please contact the customer to schedule a callback.
-  `
-  
-  // Send email via your email service
-  // ...
-  
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { "Content-Type": "application/json" },
-  })
-})
-```
+1. Install Supabase CLI (if not already installed):
+   ```bash
+   npm install -g supabase
+   ```
 
-2. Update the database function to call the Edge Function:
+2. Login to Supabase:
+   ```bash
+   supabase login
+   ```
+
+3. Link your project:
+   ```bash
+   supabase link --project-ref YOUR_PROJECT_REF
+   ```
+
+4. Deploy the function:
+   ```bash
+   supabase functions deploy send-callback-notification
+   ```
+
+5. Set environment variables in Supabase Dashboard:
+   - Go to Project Settings > Edge Functions > Environment Variables
+   - Add `RESEND_API_KEY` (get from https://resend.com/api-keys)
+   - Add `FROM_EMAIL` (e.g., `noreply@yourdomain.com`)
+
+**Step 2: Update the Database Function**
+
+Run the SQL migration to enable Edge Function calls:
 
 ```sql
--- Enable pg_net extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS pg_net;
-
--- Update the notification function to call Edge Function
-CREATE OR REPLACE FUNCTION notify_territory_owner_callback()
-RETURNS TRIGGER AS $$
-DECLARE
-  owner_email TEXT;
-  company_name TEXT;
-  notification_response JSONB;
-BEGIN
-  IF NEW.contact_pref != 'callback' OR NEW.provider_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  SELECT p.email, c.name
-  INTO owner_email, company_name
-  FROM companies c
-  INNER JOIN profiles p ON c.owner_user_id = p.id
-  WHERE c.id = NEW.provider_id;
-
-  IF owner_email IS NOT NULL THEN
-    -- Call Edge Function
-    SELECT net.http_post(
-      url := 'https://YOUR_PROJECT.supabase.co/functions/v1/send-callback-notification',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer YOUR_SERVICE_ROLE_KEY'
-      ),
-      body := jsonb_build_object(
-        'leadId', NEW.id,
-        'ownerEmail', owner_email,
-        'customerName', NEW.customer_name,
-        'customerPhone', NEW.customer_phone,
-        'customerEmail', NEW.customer_email,
-        'companyName', company_name,
-        'zip', NEW.zip
-      )
-    ) INTO notification_response;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Run this in Supabase SQL Editor
+-- This is in: supabase/migrations/005_enable_callback_email.sql
 ```
 
-### Option 2: External Email API (SendGrid, Mailgun, Resend)
+**The migration file `005_enable_callback_email.sql` contains the updated function.** 
 
-1. Create a webhook endpoint that receives callback notifications
-2. Update the database function to call the webhook via `pg_net`
-3. The webhook sends emails using your email service
+Before running it, you need to:
 
-### Option 3: Supabase Database Webhooks
+1. Get your Supabase project reference (found in Dashboard > Settings > API)
+2. Get your service role key (found in Dashboard > Settings > API > service_role key)
+3. Update the migration file with these values, OR set them as database settings:
+
+```sql
+-- Set these as database settings (run once):
+ALTER DATABASE postgres SET app.supabase_edge_function_url = 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-callback-notification';
+ALTER DATABASE postgres SET app.supabase_service_role_key = 'YOUR_SERVICE_ROLE_KEY';
+```
+
+Then run the migration `005_enable_callback_email.sql` in the Supabase SQL Editor.
+
+### Option 2: Use Resend API Directly (Simpler)
+
+If you don't want to use Edge Functions, you can modify the Edge Function to use Resend directly:
+
+1. Sign up for Resend at https://resend.com
+2. Get your API key
+3. The Edge Function already supports Resend - just set the `RESEND_API_KEY` environment variable
+
+### Option 3: External Email API (SendGrid, Mailgun)
+
+1. Modify the Edge Function (`supabase/functions/send-callback-notification/index.ts`)
+2. Replace the Resend API call with your email service's API
+3. Deploy the updated function
+
+### Option 4: Supabase Database Webhooks
 
 1. Set up a Database Webhook in Supabase Dashboard
 2. Configure it to trigger on `leads` table INSERT
 3. Filter for `contact_pref = 'callback'`
 4. Send webhook to your backend service
 5. Backend service sends email notifications
+
+## Quick Start (No Email Setup Required)
+
+**If you just want to log callback requests (no email setup needed):**
+
+The current setup (migration `004_callback_notification.sql`) already logs all callback requests. You can:
+
+1. View callback requests in Supabase Dashboard > Logs > Postgres Logs
+2. Query the `leads` table directly (see query below)
+3. Set up email notifications later when ready
 
 ## Testing
 
@@ -134,7 +126,8 @@ To test the notification system:
    Callback notification for company: [Company Name], Owner email: [email], Lead ID: [id], Customer: [name] ([phone])
    ```
 3. Verify the lead was created in the `leads` table
-4. Verify the owner email was retrieved correctly
+4. If Edge Function is set up, check Edge Function logs in Supabase Dashboard
+5. Verify the owner email was retrieved correctly
 
 ## Querying Callback Leads
 
@@ -166,3 +159,5 @@ ORDER BY l.created_at DESC;
 4. Test the full flow end-to-end
 5. Consider adding email templates for better formatting
 
+
+                                                                                                      
