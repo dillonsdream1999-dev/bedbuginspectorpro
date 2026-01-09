@@ -7,7 +7,7 @@
 DO $$
 DECLARE
     col_exists BOOLEAN;
-    is_nullable BOOLEAN;
+    col_is_nullable TEXT;
 BEGIN
     SELECT EXISTS (
         SELECT 1 FROM information_schema.columns 
@@ -15,16 +15,21 @@ BEGIN
     ) INTO col_exists;
     
     IF col_exists THEN
-        SELECT is_nullable = 'YES'
-        INTO is_nullable
-        FROM information_schema.columns 
-        WHERE table_name = 'leads' AND column_name = 'territory_id';
+        -- Use a different variable name and properly reference the column
+        SELECT c.is_nullable
+        INTO col_is_nullable
+        FROM information_schema.columns c
+        WHERE c.table_name = 'leads' AND c.column_name = 'territory_id';
         
-        RAISE NOTICE 'territory_id exists, is_nullable: %', is_nullable;
+        RAISE NOTICE 'territory_id exists, is_nullable: %', col_is_nullable;
         
         -- If it's NOT NULL and we want to make it nullable (if business logic allows)
-        -- Uncomment the line below if leads can exist without a territory
-        -- ALTER TABLE leads ALTER COLUMN territory_id DROP NOT NULL;
+        IF col_is_nullable = 'NO' THEN
+            RAISE NOTICE 'Making territory_id nullable';
+            ALTER TABLE leads ALTER COLUMN territory_id DROP NOT NULL;
+        ELSE
+            RAISE NOTICE 'territory_id is already nullable';
+        END IF;
     ELSE
         RAISE NOTICE 'territory_id column does not exist, will create it';
         -- Create the column as nullable first (safer)
