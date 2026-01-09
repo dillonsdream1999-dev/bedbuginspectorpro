@@ -298,8 +298,11 @@ export async function getLeads(
     const { data, error, count } = await query;
 
     if (error) {
+      console.error('[AdminAnalytics] Error fetching leads:', error);
       return { success: false, error: error.message };
     }
+
+    console.log('[AdminAnalytics] Fetched leads:', { count: count || 0, dataLength: data?.length || 0 });
 
     return {
       success: true,
@@ -307,6 +310,7 @@ export async function getLeads(
       count: count || 0,
     };
   } catch (err: any) {
+    console.error('[AdminAnalytics] Exception fetching leads:', err);
     return { success: false, error: err?.message || 'Failed to fetch leads' };
   }
 }

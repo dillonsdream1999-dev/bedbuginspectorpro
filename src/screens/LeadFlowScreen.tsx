@@ -269,8 +269,21 @@ export const LeadFlowScreen: React.FC<Props> = ({ navigation }) => {
     trackLeadSubmitted(zip, 'callback', !!provider, provider?.companyName);
     trackContactAction('callback', zip, provider?.companyName);
 
-    setSubmitted(true);
     setIsSubmitting(false);
+    
+    // Show success message
+    Alert.alert(
+      'Request Submitted!',
+      `Your callback request has been sent to ${provider?.companyName || 'the local expert'}. They will contact you at ${formatPhoneDisplay(callbackPhone)} soon.`,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setSubmitted(true);
+          },
+        },
+      ]
+    );
   };
 
   const formatPhoneInput = (text: string) => {

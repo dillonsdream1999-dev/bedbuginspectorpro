@@ -34,6 +34,7 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [daysFilter, setDaysFilter] = useState(30);
   const [leadsStatusFilter, setLeadsStatusFilter] = useState<string | undefined>(undefined);
+  const [leadsError, setLeadsError] = useState<string | null>(null);
 
   // Check authentication on mount
   useEffect(() => {
@@ -69,9 +70,17 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
         }
       } else {
         const leadsResult = await getLeads(100, 0, leadsStatusFilter);
-        if (leadsResult.success && leadsResult.data) {
-          setLeads(leadsResult.data);
+        console.log('[AdminDashboard] Leads result:', leadsResult);
+        if (leadsResult.success) {
+          setLeads(leadsResult.data || []);
           setLeadsCount(leadsResult.count || 0);
+          setLeadsError(null);
+        } else {
+          console.error('[AdminDashboard] Failed to load leads:', leadsResult.error);
+          setLeadsError(leadsResult.error || 'Failed to load leads');
+          // Still set empty array so UI shows error instead of loading forever
+          setLeads([]);
+          setLeadsCount(0);
         }
       }
     } catch (error) {
@@ -444,12 +453,43 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
 
-            {loading && leads.length === 0 ? (
+            {loading && leads.length === 0 && !leadsError ? (
               <View style={{ alignItems: 'center', padding: spacing.xl }}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={[typography.body, { color: colors.textSecondary, marginTop: spacing.md }]}>
                   Loading leads...
                 </Text>
+              </View>
+            ) : leadsError ? (
+              <View
+                style={{
+                  backgroundColor: colors.surface,
+                  padding: spacing.lg,
+                  borderRadius: borderRadius.md,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.danger,
+                }}
+              >
+                <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+                <Text style={[typography.bodyBold, { color: colors.danger, marginTop: spacing.md, marginBottom: spacing.xs }]}>
+                  Error Loading Leads
+                </Text>
+                <Text style={[typography.caption, { color: colors.textSecondary, textAlign: 'center' }]}>
+                  {leadsError}
+                </Text>
+                <Pressable
+                  onPress={() => loadData(true)}
+                  style={{
+                    marginTop: spacing.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    backgroundColor: colors.primary,
+                    borderRadius: borderRadius.md,
+                  }}
+                >
+                  <Text style={[typography.captionBold, { color: colors.textOnPrimary }]}>Retry</Text>
+                </Pressable>
               </View>
             ) : leads.length === 0 ? (
               <View
@@ -464,6 +504,11 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[typography.body, { color: colors.textSecondary, marginTop: spacing.md }]}>
                   No leads found
                 </Text>
+                {leadsStatusFilter && (
+                  <Text style={[typography.caption, { color: colors.textMuted, marginTop: spacing.xs }]}>
+                    Try selecting "All" to see all leads
+                  </Text>
+                )}
               </View>
             ) : (
               leads.map((lead) => (
