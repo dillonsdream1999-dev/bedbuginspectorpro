@@ -81,8 +81,9 @@ BEGIN
   END IF;
 END $$;
 
--- Test insert (commented out - uncomment to test)
+-- Test insert (commented out - uncomment to test AFTER running migration 008)
 -- This will help verify the policy works
+-- NOTE: Must run migration 008 first to fix the enum issue!
 -- INSERT INTO leads (zip, room_type, contact_pref, status)
 -- VALUES ('12345', 'bedroom', 'callback', 'new');
 
