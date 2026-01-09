@@ -5,6 +5,22 @@
 
 import { supabase, isSupabaseConfigured } from './supabase';
 
+export interface Lead {
+  id: string;
+  zip: string;
+  room_type: string;
+  contact_pref: string;
+  status: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  provider_id?: string;
+  provider_name?: string;
+  notes?: string;
+  session_id?: string;
+  created_at: string;
+}
+
 export interface UsageStats {
   totalUsers: number;
   totalAppOpens: number;
@@ -253,6 +269,45 @@ export async function getZipCodeAnalytics(
     return { success: true, data: zipAnalytics };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to fetch ZIP code analytics' };
+  }
+}
+
+/**
+ * Get all leads
+ */
+export async function getLeads(
+  limit: number = 100,
+  offset: number = 0,
+  status?: string
+): Promise<{ success: boolean; data?: Lead[]; count?: number; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: false, error: 'Service not configured' };
+  }
+
+  try {
+    let query = supabase
+      .from('leads')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: (data || []) as Lead[],
+      count: count || 0,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to fetch leads' };
   }
 }
 
