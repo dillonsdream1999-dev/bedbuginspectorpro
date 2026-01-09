@@ -40,6 +40,10 @@ import {
   PhotoScanSummaryScreen,
 } from './src/features/scanPhoto';
 
+// Admin
+import { AdminLoginScreen } from './src/screens/AdminLoginScreen';
+import { AdminDashboardScreen } from './src/screens/AdminDashboardScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
@@ -162,6 +166,17 @@ export default function App() {
             name="PhotoScanSummary"
             component={PhotoScanSummaryScreen}
             options={{ title: 'Summary', headerBackVisible: false, gestureEnabled: false }}
+          />
+          {/* Admin */}
+          <Stack.Screen
+            name="AdminLogin"
+            component={AdminLoginScreen}
+            options={{ title: 'Admin Login', headerShown: false }}
+          />
+          <Stack.Screen
+            name="AdminDashboard"
+            component={AdminDashboardScreen}
+            options={{ title: 'Admin Dashboard', headerShown: false, gestureEnabled: false }}
           />
         </Stack.Navigator>
       </NavigationContainer>

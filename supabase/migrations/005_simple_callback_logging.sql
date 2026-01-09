@@ -14,3 +14,4 @@
 -- If you want to enable email notifications later, use migration 005_enable_callback_email.sql instead
 
 
+

@@ -107,3 +107,4 @@ COMMENT ON FUNCTION notify_territory_owner_callback() IS
   'Notifies territory owner when a callback request is created. Logs notification and attempts to call Edge Function for email sending. Configure Edge Function URL and service role key for email functionality.';
 
 
+

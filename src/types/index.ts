@@ -49,5 +49,8 @@ export type RootStackParamList = {
   PhotoScanCapture: { stepId: string };
   PhotoAnnotate: { stepId: string };
   PhotoScanSummary: { sessionId: string };
+  // Admin
+  AdminLogin: undefined;
+  AdminDashboard: undefined;
 };
 

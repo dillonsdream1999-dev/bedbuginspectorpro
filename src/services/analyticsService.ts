@@ -107,9 +107,10 @@ export async function trackEvent(
 
 /**
  * Track app open event
+ * Optionally includes ZIP code if available
  */
-export function trackAppOpen(): void {
-  trackEvent('app_open');
+export function trackAppOpen(zipCode?: string): void {
+  trackEvent('app_open', zipCode ? { zip_code: zipCode } : undefined);
 }
 
 /**
@@ -231,6 +232,7 @@ export function trackPageView(page: 'education' | 'terms' | 'privacy'): void {
   
   trackEvent(eventMap[page]);
 }
+
 
 
 

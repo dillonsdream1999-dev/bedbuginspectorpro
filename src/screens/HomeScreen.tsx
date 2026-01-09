@@ -20,6 +20,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const adminTapCount = useRef(0);
+  const adminTapTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -44,6 +46,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate(route);
   };
 
+  const handleAdminAccess = () => {
+    adminTapCount.current += 1;
+    
+    // Clear existing timeout
+    if (adminTapTimeout.current) {
+      clearTimeout(adminTapTimeout.current);
+    }
+
+    // If 5 taps within 2 seconds, navigate to admin
+    if (adminTapCount.current >= 5) {
+      adminTapCount.current = 0;
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      navigation.navigate('AdminLogin');
+    } else {
+      // Reset counter after 2 seconds
+      adminTapTimeout.current = setTimeout(() => {
+        adminTapCount.current = 0;
+      }, 2000);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -65,10 +90,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.heroGradient}
           >
             <View style={styles.heroContent}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="bug" size={28} color={colors.primary} />
-              </View>
-              <Text style={styles.appName}>{COPY.APP_NAME}</Text>
+              <Pressable onPress={handleAdminAccess}>
+                <View style={styles.iconBadge}>
+                  <Ionicons name="bug" size={28} color={colors.primary} />
+                </View>
+              </Pressable>
+              <Pressable onPress={handleAdminAccess}>
+                <Text style={styles.appName}>{COPY.APP_NAME}</Text>
+              </Pressable>
               <Text style={styles.tagline}>{COPY.APP_TAGLINE}</Text>
             </View>
           </LinearGradient>
