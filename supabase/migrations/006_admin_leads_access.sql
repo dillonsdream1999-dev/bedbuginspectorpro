@@ -18,12 +18,20 @@ END $$;
 DROP POLICY IF EXISTS "Admin can view all leads" ON leads;
 DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
 DROP POLICY IF EXISTS "Anyone can view leads" ON leads;
+DROP POLICY IF EXISTS "Anyone can insert leads" ON leads;
+DROP POLICY IF EXISTS "Public can insert leads" ON leads;
 
 -- Create policy to allow authenticated users to read leads
 -- This allows admin users (who are authenticated) to view all leads
 CREATE POLICY "Authenticated users can view leads" ON leads
   FOR SELECT
   USING (auth.role() = 'authenticated');
+
+-- Create policy to allow anyone (including anonymous users) to insert leads
+-- This allows the app to create leads without requiring authentication
+CREATE POLICY "Anyone can insert leads" ON leads
+  FOR INSERT
+  WITH CHECK (true);
 
 -- Also allow service role to read (for admin operations)
 -- Note: Service role bypasses RLS, but this is here for completeness
@@ -82,4 +90,5 @@ BEGIN
     ALTER TABLE leads ADD COLUMN notes TEXT;
   END IF;
 END $$;
+
 

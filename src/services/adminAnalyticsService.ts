@@ -285,6 +285,21 @@ export async function getLeads(
   }
 
   try {
+    // Check authentication status
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('[AdminAnalytics] Auth session check:', { 
+      hasSession: !!session, 
+      userId: session?.user?.id,
+      sessionError: sessionError?.message 
+    });
+
+    // First, try a simple count query to verify access
+    const { count: testCount, error: testError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true });
+    
+    console.log('[AdminAnalytics] Test count query:', { testCount, testError: testError?.message });
+
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
@@ -293,16 +308,26 @@ export async function getLeads(
 
     if (status) {
       query = query.eq('status', status);
+      console.log('[AdminAnalytics] Filtering by status:', status);
     }
 
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('[AdminAnalytics] Error fetching leads:', error);
+      console.error('[AdminAnalytics] Error fetching leads:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return { success: false, error: error.message };
     }
 
-    console.log('[AdminAnalytics] Fetched leads:', { count: count || 0, dataLength: data?.length || 0 });
+    console.log('[AdminAnalytics] Fetched leads:', { 
+      count: count || 0, 
+      dataLength: data?.length || 0,
+      firstLead: data?.[0] ? { id: data[0].id, zip: data[0].zip, status: data[0].status } : null
+    });
 
     return {
       success: true,
